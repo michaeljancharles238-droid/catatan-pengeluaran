@@ -1,6 +1,6 @@
 /* Service Worker — Catatan Pengeluaran
    Cache-first: setelah install pertama, app bisa dibuka 100% offline. */
-const CACHE = 'catatan-pengeluaran-v1';
+const CACHE = 'catatan-pengeluaran-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -27,6 +27,12 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) {
+    // Permintaan ke API eksternal (kurs mata uang, dsb) — selalu ambil langsung dari jaringan,
+    // tidak melalui cache, agar tombol "Perbarui kurs" selalu dapat data terbaru.
+    return;
+  }
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then((cached) => {
       if (cached) return cached;

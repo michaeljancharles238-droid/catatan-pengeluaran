@@ -133,6 +133,17 @@ html.dark .tabs button.on { color:var(--sky); }
 .b-msg.warn { color:var(--amber); } .b-msg.over { color:var(--rose); }
 .hint { font-size:11.5px; color:var(--sub); padding:0 4px; margin-bottom:12px; }
 
+/* ============ KURS MATA UANG ============ */
+.rate-line { display:flex; justify-content:space-between; align-items:center; font-size:13.5px;
+  padding:10px 0; border-bottom:1px solid var(--border); }
+.rate-line:last-of-type { border-bottom:none; }
+.rate-line span:first-child { color:var(--sub); font-weight:500; }
+.rate-line span:last-child { font-weight:700; }
+.rate-updated { font-size:11px; color:var(--subtle); margin-top:8px; text-align:center; }
+.fx-refresh { width:100%; padding:11px 0; border-radius:14px; font-size:12.5px; font-weight:600;
+  background:var(--chip); color:var(--text); margin:14px 0 18px; transition:opacity .2s; }
+.fx-refresh:disabled { opacity:.5; }
+
 /* ============ TOMBOL TAMBAH ============ */
 .fab { position:fixed; bottom:24px; right:24px; width:56px; height:56px; border-radius:18px; color:#fff;
   font-size:30px; font-weight:300; background:linear-gradient(135deg,var(--sky),var(--indigo));
@@ -182,7 +193,11 @@ html.dark .cat-opt.on { color:var(--sky); }
         <p>Kelola keuanganmu setiap hari</p>
       </div>
     </div>
-    <button class="icon-btn" id="themeBtn" aria-label="Ganti tema">🌙</button>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn" id="currencyBtn" aria-label="Kurs mata uang">🌐</button>
+      <button class="icon-btn" id="backupBtn" aria-label="Backup & Restore">💾</button>
+      <button class="icon-btn" id="themeBtn" aria-label="Ganti tema">🌙</button>
+    </div>
   </header>
 
   <div class="month-nav">
@@ -195,6 +210,7 @@ html.dark .cat-opt.on { color:var(--sky); }
     <p class="label">Total pengeluaran bulan ini</p>
     <p class="amount" id="totalMonth">Rp 0</p>
     <div class="stats" id="statsRow"></div>
+    <div class="stats" id="fxStats" style="display:none;margin-top:2px"></div>
     <div class="bwrap" id="budgetBarWrap" style="display:none">
       <div class="brow"><span id="budgetBarLabel"></span><span id="budgetBarPct"></span></div>
       <div class="btrack"><div class="bfill" id="budgetBarFill" style="width:0%"></div></div>
@@ -231,6 +247,54 @@ html.dark .cat-opt.on { color:var(--sky); }
 </div>
 
 <button class="fab" id="addBtn" aria-label="Tambah pengeluaran">+</button>
+
+<div class="modal" id="currencyModal">
+  <div class="modal-bg" id="currencyModalBg"></div>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2>🌐 Kurs Mata Uang</h2>
+      <button class="close" id="closeCurrencyModal" aria-label="Tutup">✕</button>
+    </div>
+
+    <div id="rateInfo"></div>
+    <button class="fx-refresh" id="refreshRateBtn">🔄 Perbarui kurs sekarang</button>
+
+    <label class="flabel">Konversi cepat (Rupiah → USD/Riel)</label>
+    <input class="finput" id="fxAmount" inputmode="numeric" placeholder="Contoh: 100.000">
+    <div id="fxResult"></div>
+
+    <p style="font-size:11px;color:var(--subtle);margin-top:16px;line-height:1.5">
+      Kurs diambil otomatis dari exchangerate-api.com, diperbarui maksimal 1x per hari. Saat offline, kurs terakhir yang tersimpan tetap dipakai.
+    </p>
+  </div>
+</div>
+
+<div class="modal" id="backupModal">
+  <div class="modal-bg" id="backupModalBg"></div>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2>💾 Backup &amp; Restore</h2>
+      <button class="close" id="closeBackupModal" aria-label="Tutup">✕</button>
+    </div>
+
+    <p style="font-size:12.5px;color:var(--sub);line-height:1.6;margin-bottom:16px">
+      Data hanya tersimpan di browser HP ini. Export secara berkala agar tidak hilang saat cache dihapus atau ganti perangkat.
+    </p>
+
+    <label class="flabel">Simpan cadangan (Export)</label>
+    <button class="save-btn" id="exportBtn" style="margin-bottom:20px">⬇️ Download file backup (.json)</button>
+
+    <label class="flabel">Pulihkan dari cadangan (Import)</label>
+    <input type="file" id="importFile" accept="application/json" style="display:none">
+    <button class="save-btn" id="importBtn"
+      style="background:var(--chip);color:var(--text);box-shadow:none">⬆️ Pilih file backup</button>
+    <p id="importStatus" style="font-size:12px;margin-top:10px;text-align:center"></p>
+
+    <p style="font-size:11px;color:var(--subtle);margin-top:18px;line-height:1.5">
+      ⚠️ Import akan <b>menimpa semua data saat ini</b> dengan isi file backup. Pastikan file benar sebelum lanjut.
+    </p>
+  </div>
+</div>
 
 <div class="modal" id="modal">
   <div class="modal-bg" id="modalBg"></div>
@@ -333,6 +397,7 @@ function render() {
     stats += `<span>${d>=0?'📈':'📉'} <b>${Math.abs(d).toFixed(0)}%</b> ${d>=0?'lebih tinggi':'lebih rendah'} dari bulan lalu</span>`;
   }
   $('statsRow').innerHTML = stats;
+  updateFxDisplay(total);
 
   const totalBudget = Object.values(data.budgets).reduce((s,v)=>s+(v||0),0);
   const bw = $('budgetBarWrap');
@@ -578,12 +643,178 @@ $('saveBtn').onclick = ()=>{
 
 $('fNote').addEventListener('keydown', e=>{ if(e.key==='Enter') $('saveBtn').click(); });
 
+/* ================= KURS MATA UANG (USD & KHR) ================= */
+const RATE_MAX_AGE = 24 * 3600 * 1000; // maksimal 1x sehari
+
+function toUSD(idrAmount) {
+  if (!data.rates) return null;
+  return idrAmount / data.rates.idrPerUsd;
+}
+function toKHR(idrAmount) {
+  if (!data.rates) return null;
+  return (idrAmount / data.rates.idrPerUsd) * data.rates.khrPerUsd;
+}
+function fmtUSD(n) {
+  if (n===null || isNaN(n)) return '-';
+  try { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n); }
+  catch(e) { return '$'+n.toFixed(2); }
+}
+function fmtKHR(n) {
+  if (n===null || isNaN(n)) return '-';
+  return new Intl.NumberFormat('id-ID',{maximumFractionDigits:0}).format(Math.round(n)) + ' ៛';
+}
+
+async function fetchRates(force) {
+  const now = Date.now();
+  if (!force && data.rates && (now - data.rates.fetchedAt < RATE_MAX_AGE)) return data.rates;
+  // Dua sumber (utama + cadangan) — keduanya static JSON via CDN, sangat jarang gagal/diblokir
+  const sources = [
+    'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
+    'https://latest.currency-api.pages.dev/v1/currencies/usd.json',
+  ];
+  for (const url of sources) {
+    try {
+      const res = await fetch(url);
+      const json = await res.json();
+      const usd = json && json.usd;
+      if (usd && usd.idr) {
+        data.rates = { idrPerUsd: usd.idr, khrPerUsd: usd.khr || null, fetchedAt: now };
+        saveData(data);
+        return data.rates;
+      }
+    } catch(e) {
+      // Coba sumber berikutnya
+    }
+  }
+  return data.rates; // Semua sumber gagal (mis. offline) — pakai kurs tersimpan sebelumnya jika ada
+}
+
+function updateFxDisplay(totalIdr) {
+  const el = $('fxStats');
+  if (!data.rates || totalIdr<=0) { el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display='flex';
+  el.innerHTML = `<span>≈ <b>${fmtUSD(toUSD(totalIdr))}</b></span><span>≈ <b>${fmtKHR(toKHR(totalIdr))}</b></span>`;
+}
+
+function renderRateInfo() {
+  const el = $('rateInfo');
+  if (!data.rates) {
+    el.innerHTML = `<p style="font-size:13px;color:var(--subtle);line-height:1.6">Kurs belum tersedia. Pastikan HP terhubung internet, lalu tap tombol di bawah.</p>`;
+    return;
+  }
+  const idrPerKhr = data.rates.idrPerUsd / data.rates.khrPerUsd;
+  el.innerHTML = `
+    <div class="rate-line"><span>1 USD</span><span>${fmtIDR(Math.round(data.rates.idrPerUsd))}</span></div>
+    <div class="rate-line"><span>1.000 Riel (KHR)</span><span>${fmtIDR(Math.round(idrPerKhr*1000))}</span></div>
+    <p class="rate-updated">Update terakhir: ${new Date(data.rates.fetchedAt).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</p>`;
+}
+
+function updateFxResult() {
+  const raw = parseInt($('fxAmount').value.replace(/\D/g,''),10) || 0;
+  const el = $('fxResult');
+  if (!data.rates || raw<=0) { el.innerHTML=''; return; }
+  el.innerHTML = `
+    <div class="rate-line"><span>≈ Dolar AS</span><span>${fmtUSD(toUSD(raw))}</span></div>
+    <div class="rate-line"><span>≈ Riel Kamboja</span><span>${fmtKHR(toKHR(raw))}</span></div>`;
+}
+
+const currencyModal = $('currencyModal');
+$('currencyBtn').onclick = () => {
+  renderRateInfo();
+  $('fxAmount').value=''; $('fxResult').innerHTML='';
+  currencyModal.classList.add('open');
+};
+$('closeCurrencyModal').onclick = () => currencyModal.classList.remove('open');
+$('currencyModalBg').onclick = () => currencyModal.classList.remove('open');
+
+$('fxAmount').addEventListener('input', e=>{
+  const raw = e.target.value.replace(/\D/g,'');
+  e.target.value = raw ? Number(raw).toLocaleString('id-ID') : '';
+  updateFxResult();
+});
+
+$('refreshRateBtn').onclick = async () => {
+  const btn = $('refreshRateBtn');
+  btn.disabled = true; btn.textContent = '⏳ Memperbarui…';
+  await fetchRates(true);
+  renderRateInfo();
+  updateFxResult();
+  render();
+  btn.disabled = false; btn.textContent = '🔄 Perbarui kurs sekarang';
+};
+
+/* ================= BACKUP & RESTORE ================= */
+const backupModal = $('backupModal');
+$('backupBtn').onclick = () => {
+  $('importStatus').textContent = '';
+  backupModal.classList.add('open');
+};
+$('closeBackupModal').onclick = () => backupModal.classList.remove('open');
+$('backupModalBg').onclick = () => backupModal.classList.remove('open');
+
+$('exportBtn').onclick = () => {
+  const payload = {
+    app: 'catatan-pengeluaran',
+    exportedAt: new Date().toISOString(),
+    data: data,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = todayStr();
+  a.href = url;
+  a.download = `backup-pengeluaran-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  $('importStatus').textContent = '✅ File backup sudah didownload.';
+  $('importStatus').style.color = 'var(--sky-deep)';
+};
+
+$('importBtn').onclick = () => $('importFile').click();
+
+$('importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      const incoming = parsed && parsed.data ? parsed.data : parsed; // dukung format lama/baru
+      if (!incoming || !Array.isArray(incoming.expenses)) {
+        throw new Error('Format tidak dikenali');
+      }
+      const jumlah = incoming.expenses.length;
+      if (!confirm(`File ini berisi ${jumlah} transaksi.\n\nData saat ini akan DITIMPA. Lanjutkan?`)) {
+        e.target.value = '';
+        return;
+      }
+      data = {
+        expenses: incoming.expenses || [],
+        budgets: incoming.budgets || {},
+        theme: incoming.theme || data.theme,
+      };
+      saveData(data);
+      render();
+      $('importStatus').textContent = `✅ Berhasil memulihkan ${jumlah} transaksi.`;
+      $('importStatus').style.color = 'var(--sky-deep)';
+    } catch (err) {
+      $('importStatus').textContent = '❌ Gagal membaca file. Pastikan ini file backup yang valid.';
+      $('importStatus').style.color = 'var(--rose)';
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
 $('themeBtn').onclick = ()=>{ data.theme = isDark()?'light':'dark'; saveData(data); render(); };
 $('prevBtn').onclick = ()=>{ if(month===0){month=11;year--;}else month--; render(); };
 $('nextBtn').onclick = ()=>{ if(month===11){month=0;year++;}else month++; render(); };
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{ activeTab=b.dataset.tab; render(); });
 
 render();
+fetchRates().then(()=>{ render(); });
 </script>
 </body>
 </html>
