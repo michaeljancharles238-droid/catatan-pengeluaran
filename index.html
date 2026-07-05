@@ -143,6 +143,19 @@ html.dark .tabs button.on { color:var(--sky); }
 .fx-refresh { width:100%; padding:11px 0; border-radius:14px; font-size:12.5px; font-weight:600;
   background:var(--chip); color:var(--text); margin:14px 0 18px; transition:opacity .2s; }
 .fx-refresh:disabled { opacity:.5; }
+.fx-mini { font-size:10.5px; color:var(--subtle); font-weight:500; margin-top:2px; white-space:nowrap; }
+.val-wrap { display:flex; flex-direction:column; align-items:flex-end; }
+
+/* ============ PILIH MATA UANG (BUDGET) ============ */
+.curr-pick { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+.curr-opt { padding:11px 0; border-radius:12px; border:1px solid var(--border); font-size:12.5px;
+  font-weight:700; color:var(--sub); text-align:center; transition:all .15s; }
+.curr-opt.on { border-color:var(--sky); background:rgba(56,189,248,.10); color:var(--sky-deep); }
+html.dark .curr-opt.on { color:var(--sky); }
+.budget-preview { font-size:12px; color:var(--subtle); margin:-8px 0 16px; min-height:16px; }
+.budget-preview.warn { color:var(--amber); }
+.danger-btn { width:100%; padding:12px 0; border-radius:14px; font-size:12.5px; font-weight:600;
+  color:var(--rose); background:transparent; border:1px solid rgba(251,113,133,.35); margin-top:10px; }
 
 /* ============ TOMBOL TAMBAH ============ */
 .fab { position:fixed; bottom:24px; right:24px; width:56px; height:56px; border-radius:18px; color:#fff;
@@ -247,6 +260,30 @@ html.dark .cat-opt.on { color:var(--sky); }
 </div>
 
 <button class="fab" id="addBtn" aria-label="Tambah pengeluaran">+</button>
+
+<div class="modal" id="budgetEditModal">
+  <div class="modal-bg" id="budgetEditModalBg"></div>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="budgetEditTitle">✏️ Atur Budget</h2>
+      <button class="close" id="closeBudgetEditModal" aria-label="Tutup">✕</button>
+    </div>
+
+    <label class="flabel">Masukkan dalam mata uang</label>
+    <div class="curr-pick" id="budgetCurrPick">
+      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
+    </div>
+
+    <label class="flabel" id="budgetAmountLabel">Jumlah (Rp)</label>
+    <input class="finput big" id="budgetAmountInput" inputmode="numeric" placeholder="0">
+    <p class="budget-preview" id="budgetConvertedPreview"></p>
+
+    <button class="save-btn" id="saveBudgetEditBtn">Simpan budget</button>
+    <button class="danger-btn" id="clearBudgetBtn">Hapus budget kategori ini</button>
+  </div>
+</div>
 
 <div class="modal" id="currencyModal">
   <div class="modal-bg" id="currencyModalBg"></div>
@@ -516,7 +553,10 @@ function renderCats(exp, total) {
       return `<div class="cat-row">
         <div class="cat-head">
           <span class="name">${c.emoji} ${c.label}</span>
-          <span class="val">${fmtIDR(c.total)}<span class="pct">${pct.toFixed(0)}%</span></span>
+          <span class="val-wrap">
+            <span class="val">${fmtIDR(c.total)}<span class="pct">${pct.toFixed(0)}%</span></span>
+            ${fxLine(c.total)}
+          </span>
         </div>
         <div class="track"><div class="fill" style="width:${pct}%;background:${c.color}"></div></div>
       </div>`;
@@ -539,7 +579,7 @@ function renderHistory(exp) {
     return `<section class="day-group">
       <div class="day-head">
         <span>${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}</span>
-        <span class="tot">${fmtIDR(dayTotal)}</span>
+        <span class="val-wrap"><span class="tot">${fmtIDR(dayTotal)}</span>${fxLine(dayTotal)}</span>
       </div>
       ${items.map(e=>{
         const c=catById(e.category);
@@ -549,7 +589,7 @@ function renderHistory(exp) {
             <p class="note">${esc(e.note)||c.label}</p>
             <p class="cat">${c.label}</p>
           </div>
-          <span class="amt">-${fmtIDR(e.amount)}</span>
+          <span class="val-wrap"><span class="amt">-${fmtIDR(e.amount)}</span>${fxLine(e.amount)}</span>
           <button class="del" onclick="delExpense('${e.id}')" aria-label="Hapus">🗑️</button>
         </div>`;
       }).join('')}
@@ -579,6 +619,7 @@ function renderBudget(exp) {
         <div class="info">
           <p class="name">${c.label}</p>
           <p class="sub">${limit>0?`${fmtIDR(spent)} dari ${fmtIDR(limit)}`:`Terpakai ${fmtIDR(spent)} · belum ada budget`}</p>
+          ${fxLine(spent)}
         </div>
         <button class="b-edit" onclick="editBudget('${c.id}')">✏️ ${limit>0?'Ubah':'Atur'}</button>
       </div>${bar}
@@ -593,15 +634,88 @@ window.delExpense = id => {
   saveData(data); render();
 };
 
-window.editBudget = catId => {
+/* ================= EDIT BUDGET (dengan pilihan mata uang) ================= */
+const budgetEditModal = $('budgetEditModal');
+let budgetEditCat = null;
+let budgetEditCurr = 'idr';
+
+function budgetCurrLabel(curr) {
+  return curr==='idr' ? 'Jumlah (Rp)' : curr==='usd' ? 'Jumlah (USD)' : 'Jumlah (Riel / KHR)';
+}
+
+// Konversi nilai input (sesuai mata uang terpilih) menjadi Rupiah untuk disimpan.
+// Mengembalikan null jika perlu kurs tapi kurs belum tersedia.
+function budgetInputToIDR() {
+  const raw = parseInt($('budgetAmountInput').value.replace(/\D/g,''),10) || 0;
+  if (budgetEditCurr==='idr') return raw;
+  if (!data.rates) return null;
+  if (budgetEditCurr==='usd') return raw * data.rates.idrPerUsd;
+  if (budgetEditCurr==='khr') return data.rates.khrPerUsd ? (raw / data.rates.khrPerUsd) * data.rates.idrPerUsd : null;
+  return raw;
+}
+
+function updateBudgetPreview() {
+  const el = $('budgetConvertedPreview');
+  el.classList.remove('warn');
+  if (budgetEditCurr==='idr') { el.textContent=''; return; }
+  const idr = budgetInputToIDR();
+  if (idr===null) {
+    el.textContent = '⚠️ Kurs belum tersedia — buka menu 🌐 dulu untuk memuat kurs, atau pilih Rupiah.';
+    el.classList.add('warn');
+    return;
+  }
+  el.textContent = idr>0 ? `≈ setara ${fmtIDR(Math.round(idr))}` : '';
+}
+
+window.editBudget = (catId) => {
+  budgetEditCat = catId;
+  budgetEditCurr = 'idr';
   const c = catById(catId);
-  const cur = data.budgets[catId]||0;
-  const input = prompt(`Budget bulanan untuk ${c.label} (Rp):\n(isi 0 untuk menghapus budget)`, cur||'');
-  if (input===null) return;
-  const val = parseInt(String(input).replace(/\D/g,''),10)||0;
-  if (val===0) delete data.budgets[catId]; else data.budgets[catId]=val;
-  saveData(data); render();
+  $('budgetEditTitle').textContent = `✏️ Atur Budget — ${c.label}`;
+  document.querySelectorAll('.curr-opt').forEach(b=>b.classList.toggle('on', b.dataset.curr==='idr'));
+  $('budgetAmountLabel').textContent = budgetCurrLabel('idr');
+  const cur = data.budgets[catId] || 0;
+  $('budgetAmountInput').value = cur ? Number(cur).toLocaleString('id-ID') : '';
+  updateBudgetPreview();
+  budgetEditModal.classList.add('open');
+  setTimeout(()=>$('budgetAmountInput').focus(), 150);
 };
+
+document.querySelectorAll('.curr-opt').forEach(b=>{
+  b.onclick = () => {
+    budgetEditCurr = b.dataset.curr;
+    document.querySelectorAll('.curr-opt').forEach(x=>x.classList.toggle('on', x===b));
+    $('budgetAmountLabel').textContent = budgetCurrLabel(budgetEditCurr);
+    $('budgetAmountInput').value = ''; // reset agar tidak salah kira satuan
+    updateBudgetPreview();
+  };
+});
+
+$('budgetAmountInput').addEventListener('input', e=>{
+  const raw = e.target.value.replace(/\D/g,'');
+  e.target.value = raw ? Number(raw).toLocaleString('id-ID') : '';
+  updateBudgetPreview();
+});
+
+$('saveBudgetEditBtn').onclick = () => {
+  const idr = budgetInputToIDR();
+  if (idr===null) return; // kurs belum ada — biarkan pesan peringatan tampil
+  const val = Math.round(idr) || 0;
+  if (val===0) delete data.budgets[budgetEditCat]; else data.budgets[budgetEditCat] = val;
+  saveData(data);
+  budgetEditModal.classList.remove('open');
+  render();
+};
+
+$('clearBudgetBtn').onclick = () => {
+  delete data.budgets[budgetEditCat];
+  saveData(data);
+  budgetEditModal.classList.remove('open');
+  render();
+};
+
+$('closeBudgetEditModal').onclick = () => budgetEditModal.classList.remove('open');
+$('budgetEditModalBg').onclick = () => budgetEditModal.classList.remove('open');
 
 function renderCatPicker() {
   $('catPicker').innerHTML = CATS.map(c=>`
@@ -694,6 +808,12 @@ function updateFxDisplay(totalIdr) {
   if (!data.rates || totalIdr<=0) { el.style.display='none'; el.innerHTML=''; return; }
   el.style.display='flex';
   el.innerHTML = `<span>≈ <b>${fmtUSD(toUSD(totalIdr))}</b></span><span>≈ <b>${fmtKHR(toKHR(totalIdr))}</b></span>`;
+}
+
+// Baris kecil konversi USD & Riel, dipakai di kategori, riwayat, dan budget
+function fxLine(idrAmount) {
+  if (!data.rates || !idrAmount || idrAmount<=0) return '';
+  return `<div class="fx-mini">≈ ${fmtUSD(toUSD(idrAmount))} · ≈ ${fmtKHR(toKHR(idrAmount))}</div>`;
 }
 
 function renderRateInfo() {

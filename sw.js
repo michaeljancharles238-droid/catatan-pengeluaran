@@ -1,6 +1,6 @@
 /* Service Worker — Catatan Pengeluaran
    Cache-first: setelah install pertama, app bisa dibuka 100% offline. */
-const CACHE = 'catatan-pengeluaran-v4';
+const CACHE = 'catatan-pengeluaran-v5';
 const ASSETS = [
   './',
   './index.html',
