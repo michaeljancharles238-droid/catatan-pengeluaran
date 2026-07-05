@@ -296,7 +296,13 @@ html.dark .cat-opt.on { color:var(--sky); }
     <div id="rateInfo"></div>
     <button class="fx-refresh" id="refreshRateBtn">🔄 Perbarui kurs sekarang</button>
 
-    <label class="flabel">Konversi cepat (Rupiah → USD/Riel)</label>
+    <label class="flabel">Konversi cepat</label>
+    <div class="curr-pick" id="fxCurrPick">
+      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
+    </div>
+    <label class="flabel" id="fxAmountLabel">Jumlah (Rp)</label>
     <input class="finput" id="fxAmount" inputmode="numeric" placeholder="Contoh: 100.000">
     <div id="fxResult"></div>
 
@@ -644,14 +650,9 @@ function budgetCurrLabel(curr) {
 }
 
 // Konversi nilai input (sesuai mata uang terpilih) menjadi Rupiah untuk disimpan.
-// Mengembalikan null jika perlu kurs tapi kurs belum tersedia.
 function budgetInputToIDR() {
   const raw = parseInt($('budgetAmountInput').value.replace(/\D/g,''),10) || 0;
-  if (budgetEditCurr==='idr') return raw;
-  if (!data.rates) return null;
-  if (budgetEditCurr==='usd') return raw * data.rates.idrPerUsd;
-  if (budgetEditCurr==='khr') return data.rates.khrPerUsd ? (raw / data.rates.khrPerUsd) * data.rates.idrPerUsd : null;
-  return raw;
+  return convertToIDR(raw, budgetEditCurr);
 }
 
 function updateBudgetPreview() {
@@ -672,7 +673,7 @@ window.editBudget = (catId) => {
   budgetEditCurr = 'idr';
   const c = catById(catId);
   $('budgetEditTitle').textContent = `✏️ Atur Budget — ${c.label}`;
-  document.querySelectorAll('.curr-opt').forEach(b=>b.classList.toggle('on', b.dataset.curr==='idr'));
+  document.querySelectorAll('#budgetCurrPick .curr-opt').forEach(b=>b.classList.toggle('on', b.dataset.curr==='idr'));
   $('budgetAmountLabel').textContent = budgetCurrLabel('idr');
   const cur = data.budgets[catId] || 0;
   $('budgetAmountInput').value = cur ? Number(cur).toLocaleString('id-ID') : '';
@@ -681,10 +682,10 @@ window.editBudget = (catId) => {
   setTimeout(()=>$('budgetAmountInput').focus(), 150);
 };
 
-document.querySelectorAll('.curr-opt').forEach(b=>{
+document.querySelectorAll('#budgetCurrPick .curr-opt').forEach(b=>{
   b.onclick = () => {
     budgetEditCurr = b.dataset.curr;
-    document.querySelectorAll('.curr-opt').forEach(x=>x.classList.toggle('on', x===b));
+    document.querySelectorAll('#budgetCurrPick .curr-opt').forEach(x=>x.classList.toggle('on', x===b));
     $('budgetAmountLabel').textContent = budgetCurrLabel(budgetEditCurr);
     $('budgetAmountInput').value = ''; // reset agar tidak salah kira satuan
     updateBudgetPreview();
@@ -768,6 +769,16 @@ function toKHR(idrAmount) {
   if (!data.rates) return null;
   return (idrAmount / data.rates.idrPerUsd) * data.rates.khrPerUsd;
 }
+
+// Konversi nilai dari mata uang manapun (idr/usd/khr) menjadi Rupiah.
+// Mengembalikan null jika perlu kurs tapi kurs belum tersedia.
+function convertToIDR(raw, curr) {
+  if (curr==='idr') return raw;
+  if (!data.rates) return null;
+  if (curr==='usd') return raw * data.rates.idrPerUsd;
+  if (curr==='khr') return data.rates.khrPerUsd ? (raw / data.rates.khrPerUsd) * data.rates.idrPerUsd : null;
+  return raw;
+}
 function fmtUSD(n) {
   if (n===null || isNaN(n)) return '-';
   try { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n); }
@@ -829,23 +840,58 @@ function renderRateInfo() {
     <p class="rate-updated">Update terakhir: ${new Date(data.rates.fetchedAt).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</p>`;
 }
 
+let fxCurr = 'idr';
+function fxCurrLabel(curr) {
+  return curr==='idr' ? 'Jumlah (Rp)' : curr==='usd' ? 'Jumlah (USD)' : 'Jumlah (Riel / KHR)';
+}
+
 function updateFxResult() {
   const raw = parseInt($('fxAmount').value.replace(/\D/g,''),10) || 0;
   const el = $('fxResult');
   if (!data.rates || raw<=0) { el.innerHTML=''; return; }
-  el.innerHTML = `
-    <div class="rate-line"><span>≈ Dolar AS</span><span>${fmtUSD(toUSD(raw))}</span></div>
-    <div class="rate-line"><span>≈ Riel Kamboja</span><span>${fmtKHR(toKHR(raw))}</span></div>`;
+
+  const idr = convertToIDR(raw, fxCurr);
+  if (idr===null) {
+    el.innerHTML = `<p style="font-size:12px;color:var(--amber);margin-top:8px">⚠️ Kurs Riel belum tersedia untuk konversi ini.</p>`;
+    return;
+  }
+
+  if (fxCurr==='idr') {
+    el.innerHTML = `
+      <div class="rate-line"><span>≈ Dolar AS</span><span>${fmtUSD(toUSD(idr))}</span></div>
+      <div class="rate-line"><span>≈ Riel Kamboja</span><span>${fmtKHR(toKHR(idr))}</span></div>`;
+  } else if (fxCurr==='usd') {
+    el.innerHTML = `
+      <div class="rate-line"><span>≈ Rupiah</span><span>${fmtIDR(Math.round(idr))}</span></div>
+      <div class="rate-line"><span>≈ Riel Kamboja</span><span>${fmtKHR(toKHR(idr))}</span></div>`;
+  } else {
+    el.innerHTML = `
+      <div class="rate-line"><span>≈ Rupiah</span><span>${fmtIDR(Math.round(idr))}</span></div>
+      <div class="rate-line"><span>≈ Dolar AS</span><span>${fmtUSD(toUSD(idr))}</span></div>`;
+  }
 }
 
 const currencyModal = $('currencyModal');
 $('currencyBtn').onclick = () => {
   renderRateInfo();
+  fxCurr = 'idr';
+  document.querySelectorAll('#fxCurrPick .curr-opt').forEach(b=>b.classList.toggle('on', b.dataset.curr==='idr'));
+  $('fxAmountLabel').textContent = fxCurrLabel('idr');
   $('fxAmount').value=''; $('fxResult').innerHTML='';
   currencyModal.classList.add('open');
 };
 $('closeCurrencyModal').onclick = () => currencyModal.classList.remove('open');
 $('currencyModalBg').onclick = () => currencyModal.classList.remove('open');
+
+document.querySelectorAll('#fxCurrPick .curr-opt').forEach(b=>{
+  b.onclick = () => {
+    fxCurr = b.dataset.curr;
+    document.querySelectorAll('#fxCurrPick .curr-opt').forEach(x=>x.classList.toggle('on', x===b));
+    $('fxAmountLabel').textContent = fxCurrLabel(fxCurr);
+    $('fxAmount').value = ''; // reset agar tidak salah kira satuan
+    $('fxResult').innerHTML = '';
+  };
+});
 
 $('fxAmount').addEventListener('input', e=>{
   const raw = e.target.value.replace(/\D/g,'');
