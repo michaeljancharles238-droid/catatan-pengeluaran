@@ -354,8 +354,16 @@ html.dark .cat-opt.on { color:var(--sky); }
       <h2>🎯 Catat pengeluaran</h2>
       <button class="close" id="closeModal" aria-label="Tutup">✕</button>
     </div>
-    <label class="flabel" for="fAmount">Jumlah (Rp)</label>
+    <label class="flabel">Masukkan dalam mata uang</label>
+    <div class="curr-pick" id="expenseCurrPick">
+      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
+      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
+    </div>
+    <label class="flabel" id="fAmountLabel" for="fAmount">Jumlah (Rp)</label>
     <input class="finput big" id="fAmount" inputmode="numeric" placeholder="25.000" autocomplete="off">
+    <div class="budget-preview" id="expenseConvertedPreview"></div>
     <label class="flabel">Kategori</label>
     <div class="cat-grid" id="catPicker"></div>
     <div class="row2">
@@ -658,6 +666,7 @@ const budgetEditModal = $('budgetEditModal');
 let budgetEditCat = null;
 let budgetEditCurr = 'idr';
 
+// Dipakai bersama oleh modal Atur Budget dan modal Catat Pengeluaran
 function budgetCurrLabel(curr) {
   if (curr==='idr') return 'Jumlah (Rp)';
   if (curr==='usd') return 'Jumlah (USD)';
@@ -750,8 +759,33 @@ function renderCatPicker() {
 }
 
 const modal = $('modal');
+let expenseCurr = 'idr';
+
+function expenseInputToIDR() {
+  const raw = parseInt($('fAmount').value.replace(/\D/g,''),10) || 0;
+  return convertToIDR(raw, expenseCurr);
+}
+
+function updateExpensePreview() {
+  const el = $('expenseConvertedPreview');
+  el.classList.remove('warn');
+  const raw = parseInt($('fAmount').value.replace(/\D/g,''),10) || 0;
+  if (raw<=0) { el.innerHTML=''; return; }
+  const idr = expenseInputToIDR();
+  if (idr===null) {
+    el.textContent = '⚠️ Kurs belum tersedia — buka menu 🌐 dulu untuk memuat kurs, atau pilih Rupiah.';
+    el.classList.add('warn');
+    return;
+  }
+  el.innerHTML = renderConversionRows(idr, expenseCurr);
+}
+
 function openModal() {
   $('fAmount').value=''; $('fNote').value=''; $('fDate').value=todayStr();
+  expenseCurr = 'idr';
+  document.querySelectorAll('#expenseCurrPick .curr-opt').forEach(b=>b.classList.toggle('on', b.dataset.curr==='idr'));
+  $('fAmountLabel').textContent = budgetCurrLabel('idr');
+  $('expenseConvertedPreview').innerHTML = '';
   renderCatPicker();
   modal.classList.add('open');
   setTimeout(()=>$('fAmount').focus(),150);
@@ -762,18 +796,34 @@ $('addBtn').onclick = openModal;
 $('closeModal').onclick = closeModal;
 $('modalBg').onclick = closeModal;
 
+document.querySelectorAll('#expenseCurrPick .curr-opt').forEach(b=>{
+  b.onclick = () => {
+    const rawOld = parseInt($('fAmount').value.replace(/\D/g,''),10) || 0;
+    const idr = convertToIDR(rawOld, expenseCurr); // nilai sebelum ganti, dalam Rupiah
+
+    expenseCurr = b.dataset.curr;
+    document.querySelectorAll('#expenseCurrPick .curr-opt').forEach(x=>x.classList.toggle('on', x===b));
+    $('fAmountLabel').textContent = budgetCurrLabel(expenseCurr);
+
+    const converted = (rawOld>0 && idr!==null) ? convertFromIDR(idr, expenseCurr) : null;
+    $('fAmount').value = (converted!==null && converted>0) ? Math.round(converted).toLocaleString('id-ID') : '';
+    updateExpensePreview();
+  };
+});
+
 $('fAmount').addEventListener('input', e=>{
   const raw = e.target.value.replace(/\D/g,'');
   e.target.value = raw ? Number(raw).toLocaleString('id-ID') : '';
+  updateExpensePreview();
 });
 
 $('saveBtn').onclick = ()=>{
-  const amount = parseInt($('fAmount').value.replace(/\D/g,''),10);
+  const idr = expenseInputToIDR();
   const date = $('fDate').value;
-  if (!amount||amount<=0||!date) return;
+  if (idr===null || !idr || idr<=0 || !date) return;
   data.expenses.unshift({
     id: Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-    date, category: selectedCat, amount,
+    date, category: selectedCat, amount: Math.round(idr),
     note: $('fNote').value.trim(),
   });
   saveData(data); closeModal(); render();
