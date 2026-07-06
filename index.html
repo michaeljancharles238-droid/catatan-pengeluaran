@@ -71,9 +71,10 @@ input { font:inherit; color:var(--text); }
   border-radius:50%; background:rgba(255,255,255,.10); }
 .hero .label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:#e0f2fe; margin-bottom:4px; }
 .hero .amount { font-size:30px; font-weight:800; letter-spacing:-.02em; }
-.hero .stats { display:flex; flex-wrap:wrap; gap:4px 20px; margin-top:12px; font-size:11.5px; color:#e0f2fe; position:relative; z-index:1; }
+.hero .stats { display:flex; flex-wrap:wrap; gap:4px 20px; margin-top:10px; font-size:11.5px; color:#e0f2fe; position:relative; z-index:1; }
 .hero .stats b { color:#fff; }
-.hero .bwrap { margin-top:16px; position:relative; z-index:1; }
+.hero .fx-divider { height:1px; background:rgba(255,255,255,.16); margin:12px 0; position:relative; z-index:1; }
+.hero .bwrap { margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.16); position:relative; z-index:1; }
 .hero .brow { display:flex; justify-content:space-between; font-size:11.5px; color:#e0f2fe; margin-bottom:4px; }
 .hero .btrack { height:8px; border-radius:99px; background:rgba(255,255,255,.22); overflow:hidden; }
 .hero .bfill { height:100%; border-radius:99px; background:#fff; transition:width .5s; }
@@ -143,17 +144,21 @@ html.dark .tabs button.on { color:var(--sky); }
 .fx-refresh { width:100%; padding:11px 0; border-radius:14px; font-size:12.5px; font-weight:600;
   background:var(--chip); color:var(--text); margin:14px 0 18px; transition:opacity .2s; }
 .fx-refresh:disabled { opacity:.5; }
-.fx-mini { font-size:10.5px; color:var(--subtle); font-weight:500; margin-top:2px; white-space:nowrap; }
+.fx-mini { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+.val-wrap .fx-mini { justify-content:flex-end; }
+.fx-chip { font-size:10px; font-weight:600; color:var(--sub); background:var(--chip); border-radius:6px;
+  padding:2px 6px; white-space:nowrap; line-height:1.5; }
+.hero .fx-chip { background:rgba(255,255,255,.16); color:#f0f9ff; font-size:11px; padding:3px 8px; }
 .val-wrap { display:flex; flex-direction:column; align-items:flex-end; }
 
 /* ============ PILIH MATA UANG (BUDGET) ============ */
-.curr-pick { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
-.curr-opt { padding:11px 0; border-radius:12px; border:1px solid var(--border); font-size:12.5px;
+.curr-pick { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:16px; }
+.curr-opt { padding:11px 0; border-radius:12px; border:1px solid var(--border); font-size:13px;
   font-weight:700; color:var(--sub); text-align:center; transition:all .15s; }
 .curr-opt.on { border-color:var(--sky); background:rgba(56,189,248,.10); color:var(--sky-deep); }
 html.dark .curr-opt.on { color:var(--sky); }
-.budget-preview { font-size:12px; color:var(--subtle); margin:-8px 0 16px; min-height:16px; }
-.budget-preview.warn { color:var(--amber); }
+.budget-preview { margin:-4px 0 16px; min-height:16px; }
+.budget-preview.warn { font-size:12px; color:var(--amber); }
 .danger-btn { width:100%; padding:12px 0; border-radius:14px; font-size:12.5px; font-weight:600;
   color:var(--rose); background:transparent; border:1px solid rgba(251,113,133,.35); margin-top:10px; }
 
@@ -223,7 +228,8 @@ html.dark .cat-opt.on { color:var(--sky); }
     <p class="label">Total pengeluaran bulan ini</p>
     <p class="amount" id="totalMonth">Rp 0</p>
     <div class="stats" id="statsRow"></div>
-    <div class="stats" id="fxStats" style="display:none;margin-top:2px"></div>
+    <div class="fx-divider" id="fxDivider" style="display:none"></div>
+    <div class="stats" id="fxStats" style="display:none;gap:6px"></div>
     <div class="bwrap" id="budgetBarWrap" style="display:none">
       <div class="brow"><span id="budgetBarLabel"></span><span id="budgetBarPct"></span></div>
       <div class="btrack"><div class="bfill" id="budgetBarFill" style="width:0%"></div></div>
@@ -271,14 +277,15 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <label class="flabel">Masukkan dalam mata uang</label>
     <div class="curr-pick" id="budgetCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
-      <button type="button" class="curr-opt" data-curr="usd">USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
+      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
+      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
     </div>
 
     <label class="flabel" id="budgetAmountLabel">Jumlah (Rp)</label>
     <input class="finput big" id="budgetAmountInput" inputmode="numeric" placeholder="0">
-    <p class="budget-preview" id="budgetConvertedPreview"></p>
+    <div class="budget-preview" id="budgetConvertedPreview"></div>
 
     <button class="save-btn" id="saveBudgetEditBtn">Simpan budget</button>
     <button class="danger-btn" id="clearBudgetBtn">Hapus budget kategori ini</button>
@@ -298,9 +305,10 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <label class="flabel">Konversi cepat</label>
     <div class="curr-pick" id="fxCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
-      <button type="button" class="curr-opt" data-curr="usd">USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
+      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
+      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
     </div>
     <label class="flabel" id="fxAmountLabel">Jumlah (Rp)</label>
     <input class="finput" id="fxAmount" inputmode="numeric" placeholder="Contoh: 100.000">
@@ -382,11 +390,16 @@ const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 // Penyimpanan aman: localStorage jika tersedia, fallback ke memori (untuk preview di Claude)
 let memStore = null;
 function loadData() {
+  let d;
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  return memStore || { expenses: [], budgets: {}, theme: 'dark' };
+    d = raw ? JSON.parse(raw) : (memStore || { expenses: [], budgets: {}, theme: 'dark' });
+  } catch(e) {
+    d = memStore || { expenses: [], budgets: {}, theme: 'dark' };
+  }
+  // Migrasi: format kurs lama (idrPerUsd/khrPerUsd) belum punya Baht — kosongkan agar difetch ulang otomatis
+  if (d.rates && !d.rates.perUsd) d.rates = null;
+  return d;
 }
 function saveData(d) {
   memStore = d;
@@ -646,7 +659,11 @@ let budgetEditCat = null;
 let budgetEditCurr = 'idr';
 
 function budgetCurrLabel(curr) {
-  return curr==='idr' ? 'Jumlah (Rp)' : curr==='usd' ? 'Jumlah (USD)' : 'Jumlah (Riel / KHR)';
+  if (curr==='idr') return 'Jumlah (Rp)';
+  if (curr==='usd') return 'Jumlah (USD)';
+  if (curr==='khr') return 'Jumlah (Riel / KHR)';
+  if (curr==='thb') return 'Jumlah (Baht / THB)';
+  return 'Jumlah';
 }
 
 // Konversi nilai input (sesuai mata uang terpilih) menjadi Rupiah untuk disimpan.
@@ -658,14 +675,15 @@ function budgetInputToIDR() {
 function updateBudgetPreview() {
   const el = $('budgetConvertedPreview');
   el.classList.remove('warn');
-  if (budgetEditCurr==='idr') { el.textContent=''; return; }
+  const raw = parseInt($('budgetAmountInput').value.replace(/\D/g,''),10) || 0;
+  if (raw<=0) { el.innerHTML=''; return; }
   const idr = budgetInputToIDR();
   if (idr===null) {
     el.textContent = '⚠️ Kurs belum tersedia — buka menu 🌐 dulu untuk memuat kurs, atau pilih Rupiah.';
     el.classList.add('warn');
     return;
   }
-  el.textContent = idr>0 ? `≈ setara ${fmtIDR(Math.round(idr))}` : '';
+  el.innerHTML = renderConversionRows(idr, budgetEditCurr);
 }
 
 window.editBudget = (catId) => {
@@ -684,10 +702,15 @@ window.editBudget = (catId) => {
 
 document.querySelectorAll('#budgetCurrPick .curr-opt').forEach(b=>{
   b.onclick = () => {
+    const rawOld = parseInt($('budgetAmountInput').value.replace(/\D/g,''),10) || 0;
+    const idr = convertToIDR(rawOld, budgetEditCurr); // nilai sebelum ganti, dalam Rupiah
+
     budgetEditCurr = b.dataset.curr;
     document.querySelectorAll('#budgetCurrPick .curr-opt').forEach(x=>x.classList.toggle('on', x===b));
     $('budgetAmountLabel').textContent = budgetCurrLabel(budgetEditCurr);
-    $('budgetAmountInput').value = ''; // reset agar tidak salah kira satuan
+
+    const converted = (rawOld>0 && idr!==null) ? convertFromIDR(idr, budgetEditCurr) : null;
+    $('budgetAmountInput').value = (converted!==null && converted>0) ? Math.round(converted).toLocaleString('id-ID') : '';
     updateBudgetPreview();
   };
 });
@@ -758,40 +781,92 @@ $('saveBtn').onclick = ()=>{
 
 $('fNote').addEventListener('keydown', e=>{ if(e.key==='Enter') $('saveBtn').click(); });
 
-/* ================= KURS MATA UANG (USD & KHR) ================= */
+/* ================= KURS MATA UANG (USD, KHR, THB) ================= */
 const RATE_MAX_AGE = 24 * 3600 * 1000; // maksimal 1x sehari
 
-function toUSD(idrAmount) {
-  if (!data.rates) return null;
-  return idrAmount / data.rates.idrPerUsd;
-}
-function toKHR(idrAmount) {
-  if (!data.rates) return null;
-  return (idrAmount / data.rates.idrPerUsd) * data.rates.khrPerUsd;
-}
+// Metadata semua mata uang asing yang didukung. Tambah entri di sini untuk menambah mata uang baru.
+const FX_META = {
+  usd: { label: 'Dolar AS',      short: 'USD',  flag: '🇺🇸', fmt: n => fmtUSD(n), fmtCompact: n => fmtUSD(n,true) },
+  khr: { label: 'Riel Kamboja',  short: 'Riel', flag: '🇰🇭', fmt: n => fmtKHR(n), fmtCompact: n => fmtKHR(n,true) },
+  thb: { label: 'Baht Thailand', short: 'Baht', flag: '🇹🇭', fmt: n => fmtTHB(n), fmtCompact: n => fmtTHB(n,true) },
+};
+const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb']
 
-// Konversi nilai dari mata uang manapun (idr/usd/khr) menjadi Rupiah.
-// Mengembalikan null jika perlu kurs tapi kurs belum tersedia.
-function convertToIDR(raw, curr) {
-  if (curr==='idr') return raw;
-  if (!data.rates) return null;
-  if (curr==='usd') return raw * data.rates.idrPerUsd;
-  if (curr==='khr') return data.rates.khrPerUsd ? (raw / data.rates.khrPerUsd) * data.rates.idrPerUsd : null;
-  return raw;
+// Angka besar disingkat (1,2jt / 350rb) supaya chip konversi tetap ringkas & tidak memenuhi layar.
+function shortenNum(n) {
+  const abs = Math.abs(n);
+  if (abs>=1e6) return (n/1e6).toFixed(1).replace('.0','')+'jt';
+  if (abs>=1e3) return Math.round(n/1e3)+'rb';
+  return String(Math.round(n*100)/100);
 }
-function fmtUSD(n) {
+function fmtUSD(n, compact) {
   if (n===null || isNaN(n)) return '-';
+  if (compact) return '$'+shortenNum(n);
   try { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n); }
   catch(e) { return '$'+n.toFixed(2); }
 }
-function fmtKHR(n) {
+function fmtKHR(n, compact) {
   if (n===null || isNaN(n)) return '-';
+  if (compact) return shortenNum(n)+' ៛';
   return new Intl.NumberFormat('id-ID',{maximumFractionDigits:0}).format(Math.round(n)) + ' ៛';
+}
+function fmtTHB(n, compact) {
+  if (n===null || isNaN(n)) return '-';
+  if (compact) return '฿'+shortenNum(n);
+  return '฿' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+}
+
+// Ambil kurs "per 1 USD" untuk kode tertentu. USD sendiri selalu 1 (tidak disimpan di perUsd).
+function getPerUsdRate(code) {
+  if (code === 'usd') return 1;
+  return (data.rates && data.rates.perUsd) ? data.rates.perUsd[code] : null;
+}
+// Rupiah -> mata uang asing (code: 'usd'|'khr'|'thb')
+function idrToForeign(idrAmount, code) {
+  if (!data.rates || !data.rates.perUsd || !data.rates.perUsd.idr) return null;
+  const rate = getPerUsdRate(code);
+  if (!rate) return null;
+  return (idrAmount / data.rates.perUsd.idr) * rate;
+}
+// Mata uang asing -> Rupiah
+function foreignToIdr(amount, code) {
+  if (!data.rates || !data.rates.perUsd || !data.rates.perUsd.idr) return null;
+  const rate = getPerUsdRate(code);
+  if (!rate) return null;
+  return (amount / rate) * data.rates.perUsd.idr;
+}
+function toUSD(idrAmount) { return idrToForeign(idrAmount, 'usd'); }
+function toKHR(idrAmount) { return idrToForeign(idrAmount, 'khr'); }
+function toTHB(idrAmount) { return idrToForeign(idrAmount, 'thb'); }
+
+// Konversi nilai dari mata uang manapun (idr/usd/khr/thb) menjadi Rupiah.
+// Mengembalikan null jika perlu kurs tapi kurs belum tersedia.
+function convertToIDR(raw, curr) {
+  if (curr==='idr') return raw;
+  return foreignToIdr(raw, curr);
+}
+
+// Kebalikan dari convertToIDR: Rupiah -> mata uang tujuan. Untuk auto-convert saat ganti tab mata uang.
+function convertFromIDR(idr, curr) {
+  if (curr==='idr') return idr;
+  return idrToForeign(idr, curr);
+}
+
+// Menampilkan daftar konversi ke SEMUA mata uang LAINNYA (selain yang sedang aktif/excludeCurr).
+// Dipakai di modal Konversi Cepat maupun modal Atur Budget agar konsisten.
+function renderConversionRows(idr, excludeCurr) {
+  const rows = [];
+  if (excludeCurr!=='idr') rows.push(`<div class="rate-line"><span>≈ Rupiah</span><span>${fmtIDR(Math.round(idr))}</span></div>`);
+  FX_CODES.forEach(code=>{
+    if (excludeCurr===code) return;
+    rows.push(`<div class="rate-line"><span>≈ ${FX_META[code].label}</span><span>${FX_META[code].fmt(idrToForeign(idr, code))}</span></div>`);
+  });
+  return rows.join('');
 }
 
 async function fetchRates(force) {
   const now = Date.now();
-  if (!force && data.rates && (now - data.rates.fetchedAt < RATE_MAX_AGE)) return data.rates;
+  if (!force && data.rates && data.rates.perUsd && (now - data.rates.fetchedAt < RATE_MAX_AGE)) return data.rates;
   // Dua sumber (utama + cadangan) — keduanya static JSON via CDN, sangat jarang gagal/diblokir
   const sources = [
     'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
@@ -803,7 +878,7 @@ async function fetchRates(force) {
       const json = await res.json();
       const usd = json && json.usd;
       if (usd && usd.idr) {
-        data.rates = { idrPerUsd: usd.idr, khrPerUsd: usd.khr || null, fetchedAt: now };
+        data.rates = { perUsd: { idr: usd.idr, khr: usd.khr || null, thb: usd.thb || null }, fetchedAt: now };
         saveData(data);
         return data.rates;
       }
@@ -816,59 +891,68 @@ async function fetchRates(force) {
 
 function updateFxDisplay(totalIdr) {
   const el = $('fxStats');
-  if (!data.rates || totalIdr<=0) { el.style.display='none'; el.innerHTML=''; return; }
+  const divider = $('fxDivider');
+  if (!data.rates || totalIdr<=0) {
+    el.style.display='none'; el.innerHTML='';
+    divider.style.display='none';
+    return;
+  }
   el.style.display='flex';
-  el.innerHTML = `<span>≈ <b>${fmtUSD(toUSD(totalIdr))}</b></span><span>≈ <b>${fmtKHR(toKHR(totalIdr))}</b></span>`;
+  divider.style.display='block';
+  el.innerHTML = FX_CODES.map(code =>
+    `<span class="fx-chip">${FX_META[code].flag} ${FX_META[code].fmtCompact(idrToForeign(totalIdr, code))}</span>`
+  ).join('');
 }
 
-// Baris kecil konversi USD & Riel, dipakai di kategori, riwayat, dan budget
+// Baris kecil (chip) konversi ke semua mata uang asing — dipakai di kategori, riwayat, dan budget
 function fxLine(idrAmount) {
   if (!data.rates || !idrAmount || idrAmount<=0) return '';
-  return `<div class="fx-mini">≈ ${fmtUSD(toUSD(idrAmount))} · ≈ ${fmtKHR(toKHR(idrAmount))}</div>`;
+  const chips = FX_CODES.map(code =>
+    `<span class="fx-chip">${FX_META[code].flag} ${FX_META[code].fmtCompact(idrToForeign(idrAmount, code))}</span>`
+  );
+  return `<div class="fx-mini">${chips.join('')}</div>`;
 }
 
 function renderRateInfo() {
   const el = $('rateInfo');
-  if (!data.rates) {
+  if (!data.rates || !data.rates.perUsd) {
     el.innerHTML = `<p style="font-size:13px;color:var(--subtle);line-height:1.6">Kurs belum tersedia. Pastikan HP terhubung internet, lalu tap tombol di bawah.</p>`;
     return;
   }
-  const idrPerKhr = data.rates.idrPerUsd / data.rates.khrPerUsd;
-  el.innerHTML = `
-    <div class="rate-line"><span>1 USD</span><span>${fmtIDR(Math.round(data.rates.idrPerUsd))}</span></div>
-    <div class="rate-line"><span>1.000 Riel (KHR)</span><span>${fmtIDR(Math.round(idrPerKhr*1000))}</span></div>
-    <p class="rate-updated">Update terakhir: ${new Date(data.rates.fetchedAt).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</p>`;
+  const idrPerUsd = data.rates.perUsd.idr;
+  let rows = `<div class="rate-line"><span>1 USD</span><span>${fmtIDR(Math.round(idrPerUsd))}</span></div>`;
+  if (data.rates.perUsd.khr) {
+    const idrPerKhr = idrPerUsd / data.rates.perUsd.khr;
+    rows += `<div class="rate-line"><span>1.000 Riel (KHR)</span><span>${fmtIDR(Math.round(idrPerKhr*1000))}</span></div>`;
+  }
+  if (data.rates.perUsd.thb) {
+    const idrPerThb = idrPerUsd / data.rates.perUsd.thb;
+    rows += `<div class="rate-line"><span>1 Baht (THB)</span><span>${fmtIDR(Math.round(idrPerThb))}</span></div>`;
+  }
+  rows += `<p class="rate-updated">Update terakhir: ${new Date(data.rates.fetchedAt).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</p>`;
+  el.innerHTML = rows;
 }
 
 let fxCurr = 'idr';
 function fxCurrLabel(curr) {
-  return curr==='idr' ? 'Jumlah (Rp)' : curr==='usd' ? 'Jumlah (USD)' : 'Jumlah (Riel / KHR)';
+  if (curr==='idr') return 'Jumlah (Rp)';
+  if (curr==='usd') return 'Jumlah (USD)';
+  if (curr==='khr') return 'Jumlah (Riel / KHR)';
+  if (curr==='thb') return 'Jumlah (Baht / THB)';
+  return 'Jumlah';
 }
 
 function updateFxResult() {
   const raw = parseInt($('fxAmount').value.replace(/\D/g,''),10) || 0;
   const el = $('fxResult');
-  if (!data.rates || raw<=0) { el.innerHTML=''; return; }
+  if (raw<=0) { el.innerHTML=''; return; }
 
   const idr = convertToIDR(raw, fxCurr);
   if (idr===null) {
-    el.innerHTML = `<p style="font-size:12px;color:var(--amber);margin-top:8px">⚠️ Kurs Riel belum tersedia untuk konversi ini.</p>`;
+    el.innerHTML = `<p style="font-size:12px;color:var(--amber);margin-top:8px">⚠️ Kurs untuk mata uang ini belum tersedia.</p>`;
     return;
   }
-
-  if (fxCurr==='idr') {
-    el.innerHTML = `
-      <div class="rate-line"><span>≈ Dolar AS</span><span>${fmtUSD(toUSD(idr))}</span></div>
-      <div class="rate-line"><span>≈ Riel Kamboja</span><span>${fmtKHR(toKHR(idr))}</span></div>`;
-  } else if (fxCurr==='usd') {
-    el.innerHTML = `
-      <div class="rate-line"><span>≈ Rupiah</span><span>${fmtIDR(Math.round(idr))}</span></div>
-      <div class="rate-line"><span>≈ Riel Kamboja</span><span>${fmtKHR(toKHR(idr))}</span></div>`;
-  } else {
-    el.innerHTML = `
-      <div class="rate-line"><span>≈ Rupiah</span><span>${fmtIDR(Math.round(idr))}</span></div>
-      <div class="rate-line"><span>≈ Dolar AS</span><span>${fmtUSD(toUSD(idr))}</span></div>`;
-  }
+  el.innerHTML = renderConversionRows(idr, fxCurr);
 }
 
 const currencyModal = $('currencyModal');
@@ -885,11 +969,16 @@ $('currencyModalBg').onclick = () => currencyModal.classList.remove('open');
 
 document.querySelectorAll('#fxCurrPick .curr-opt').forEach(b=>{
   b.onclick = () => {
+    const rawOld = parseInt($('fxAmount').value.replace(/\D/g,''),10) || 0;
+    const idr = convertToIDR(rawOld, fxCurr); // nilai sebelum ganti, dalam Rupiah
+
     fxCurr = b.dataset.curr;
     document.querySelectorAll('#fxCurrPick .curr-opt').forEach(x=>x.classList.toggle('on', x===b));
     $('fxAmountLabel').textContent = fxCurrLabel(fxCurr);
-    $('fxAmount').value = ''; // reset agar tidak salah kira satuan
-    $('fxResult').innerHTML = '';
+
+    const converted = (rawOld>0 && idr!==null) ? convertFromIDR(idr, fxCurr) : null;
+    $('fxAmount').value = (converted!==null && converted>0) ? Math.round(converted).toLocaleString('id-ID') : '';
+    updateFxResult();
   };
 });
 
