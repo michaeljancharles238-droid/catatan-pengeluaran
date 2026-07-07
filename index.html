@@ -47,13 +47,14 @@ input { font:inherit; color:var(--text); }
 
 /* ============ HEADER ============ */
 .header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
-.brand { display:flex; align-items:center; gap:12px; }
+.brand { display:flex; align-items:center; gap:12px; min-width:0; }
+.brand > div { min-width:0; }
 .logo { width:40px; height:40px; border-radius:16px; display:flex; align-items:center; justify-content:center;
-  font-size:18px; background:linear-gradient(135deg,var(--sky),var(--indigo)); box-shadow:var(--shadow); }
-.brand h1 { font-size:17px; font-weight:800; line-height:1.2; }
-.brand p { font-size:11px; color:var(--sub); }
-.icon-btn { width:40px; height:40px; border-radius:12px; border:1px solid var(--border);
-  background:var(--card); display:flex; align-items:center; justify-content:center; font-size:17px; }
+  font-size:18px; background:linear-gradient(135deg,var(--sky),var(--indigo)); box-shadow:var(--shadow); flex-shrink:0; }
+.brand h1 { font-size:17px; font-weight:800; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.brand p { font-size:11px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.icon-btn { width:36px; height:36px; border-radius:11px; border:1px solid var(--border);
+  background:var(--card); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
 
 /* ============ NAVIGASI BULAN ============ */
 .month-nav { display:flex; align-items:center; justify-content:space-between; border:1px solid var(--border);
@@ -213,7 +214,8 @@ html.dark .cat-opt.on { color:var(--sky); }
         <p>Kelola keuanganmu setiap hari</p>
       </div>
     </div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:6px">
+      <button class="icon-btn" id="bankBtn" aria-label="Saldo bank">🏦</button>
       <button class="icon-btn" id="currencyBtn" aria-label="Kurs mata uang">🌐</button>
       <button class="icon-btn" id="backupBtn" aria-label="Backup & Restore">💾</button>
       <button class="icon-btn" id="themeBtn" aria-label="Ganti tema">🌙</button>
@@ -291,6 +293,52 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <button class="save-btn" id="saveBudgetEditBtn">Simpan budget</button>
     <button class="danger-btn" id="clearBudgetBtn">Hapus budget kategori ini</button>
+  </div>
+</div>
+
+<div class="modal" id="bankModal">
+  <div class="modal-bg" id="bankModalBg"></div>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2>🏦 Saldo Bank</h2>
+      <button class="close" id="closeBankModal" aria-label="Tutup">✕</button>
+    </div>
+
+    <div class="hero" style="padding:16px;margin-bottom:16px">
+      <p class="label">Total Saldo</p>
+      <p class="amount" style="font-size:24px" id="bankTotalAmount">Rp 0</p>
+      <div class="stats" id="bankFxStats" style="display:none;gap:6px;margin-top:8px"></div>
+    </div>
+
+    <div id="bankList"></div>
+    <button class="fx-refresh" id="addBankBtn" style="margin-top:2px">➕ Tambah Rekening</button>
+  </div>
+</div>
+
+<div class="modal" id="bankEditModal">
+  <div class="modal-bg" id="bankEditModalBg"></div>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="bankEditTitle">🏦 Tambah Rekening</h2>
+      <button class="close" id="closeBankEditModal" aria-label="Tutup">✕</button>
+    </div>
+
+    <label class="flabel" for="bankNameInput">Nama Rekening</label>
+    <input class="finput" id="bankNameInput" placeholder="Contoh: CIMB Niaga" autocomplete="off">
+
+    <label class="flabel">Saldo dalam mata uang</label>
+    <div class="curr-pick" id="bankCurrPick">
+      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
+      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
+    </div>
+    <label class="flabel" id="bankAmountLabel">Saldo (Rp)</label>
+    <input class="finput big" id="bankAmountInput" inputmode="numeric" placeholder="0">
+    <div class="budget-preview" id="bankConvertedPreview"></div>
+
+    <button class="save-btn" id="saveBankBtn">Simpan rekening</button>
+    <button class="danger-btn" id="deleteBankBtn" style="display:none">Hapus rekening ini</button>
   </div>
 </div>
 
@@ -392,6 +440,7 @@ const CATS = [
   { id:'tagihan',      label:'Tagihan & Utilitas',  emoji:'🧾', color:'#fbbf24' },
   { id:'hiburan',      label:'Hiburan',             emoji:'🎮', color:'#34d399' },
   { id:'kesehatan',    label:'Kesehatan',           emoji:'💊', color:'#fb7185' },
+  { id:'trading',      label:'Trading',             emoji:'📈', color:'#a78bfa' },
   { id:'lainnya',      label:'Lainnya',             emoji:'📦', color:'#94a3b8' },
 ];
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -403,12 +452,14 @@ function loadData() {
   let d;
   try {
     const raw = localStorage.getItem(KEY);
-    d = raw ? JSON.parse(raw) : (memStore || { expenses: [], budgets: {}, theme: 'dark' });
+    d = raw ? JSON.parse(raw) : (memStore || { expenses: [], budgets: {}, theme: 'dark', banks: [] });
   } catch(e) {
-    d = memStore || { expenses: [], budgets: {}, theme: 'dark' };
+    d = memStore || { expenses: [], budgets: {}, theme: 'dark', banks: [] };
   }
   // Migrasi: format kurs lama (idrPerUsd/khrPerUsd) belum punya Baht — kosongkan agar difetch ulang otomatis
   if (d.rates && !d.rates.perUsd) d.rates = null;
+  // Migrasi: data lama belum punya daftar rekening bank
+  if (!Array.isArray(d.banks)) d.banks = [];
   return d;
 }
 function saveData(d) {
@@ -1054,6 +1105,142 @@ $('refreshRateBtn').onclick = async () => {
   btn.disabled = false; btn.textContent = '🔄 Perbarui kurs sekarang';
 };
 
+/* ================= SALDO BANK ================= */
+const bankModal = $('bankModal');
+const bankEditModal = $('bankEditModal');
+let bankEditId = null; // null = mode tambah baru, selain itu = mode ubah
+let bankCurr = 'idr';
+
+function renderBankList() {
+  const total = data.banks.reduce((s,b)=>s+b.amount,0);
+  $('bankTotalAmount').textContent = fmtIDR(total);
+  const fxEl = $('bankFxStats');
+  if (data.rates && total>0) {
+    fxEl.style.display='flex';
+    fxEl.innerHTML = FX_CODES.map(code =>
+      `<span class="fx-chip">${FX_META[code].flag} ${FX_META[code].fmtCompact(idrToForeign(total, code))}</span>`
+    ).join('');
+  } else { fxEl.style.display='none'; fxEl.innerHTML=''; }
+
+  const listEl = $('bankList');
+  if (data.banks.length===0) {
+    listEl.innerHTML = `<div class="empty" style="padding:20px 4px"><div class="ico">🏦</div>Belum ada rekening. Tap "Tambah Rekening" untuk mulai mencatat saldo.</div>`;
+    return;
+  }
+  listEl.innerHTML = data.banks.map(b => `
+    <section class="b-card">
+      <div class="b-head">
+        <div class="ico" style="width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;background:#38bdf822">🏦</div>
+        <div class="info">
+          <p class="name">${esc(b.name)}</p>
+          <p class="sub">${fmtIDR(b.amount)}</p>
+          ${fxLine(b.amount)}
+        </div>
+        <button class="b-edit" onclick="editBank('${b.id}')">✏️ Ubah</button>
+      </div>
+    </section>`).join('');
+}
+
+function bankInputToIDR() {
+  const raw = parseInt($('bankAmountInput').value.replace(/\D/g,''),10) || 0;
+  return convertToIDR(raw, bankCurr);
+}
+
+function updateBankPreview() {
+  const el = $('bankConvertedPreview');
+  el.classList.remove('warn');
+  const raw = parseInt($('bankAmountInput').value.replace(/\D/g,''),10) || 0;
+  if (raw<=0) { el.innerHTML=''; return; }
+  const idr = bankInputToIDR();
+  if (idr===null) {
+    el.textContent = '⚠️ Kurs belum tersedia — buka menu 🌐 dulu untuk memuat kurs, atau pilih Rupiah.';
+    el.classList.add('warn');
+    return;
+  }
+  el.innerHTML = renderConversionRows(idr, bankCurr);
+}
+
+function openBankEditModal() {
+  bankCurr = 'idr';
+  document.querySelectorAll('#bankCurrPick .curr-opt').forEach(b=>b.classList.toggle('on', b.dataset.curr==='idr'));
+  $('bankAmountLabel').textContent = budgetCurrLabel('idr');
+  $('bankConvertedPreview').innerHTML = '';
+  bankEditModal.classList.add('open');
+  setTimeout(()=>$('bankNameInput').focus(),150);
+}
+
+window.editBank = (id) => {
+  const b = data.banks.find(x=>x.id===id);
+  if (!b) return;
+  bankEditId = id;
+  $('bankEditTitle').textContent = '🏦 Ubah Rekening';
+  $('bankNameInput').value = b.name;
+  $('bankAmountInput').value = Number(b.amount).toLocaleString('id-ID');
+  $('deleteBankBtn').style.display = 'block';
+  openBankEditModal();
+};
+
+$('addBankBtn').onclick = () => {
+  bankEditId = null;
+  $('bankEditTitle').textContent = '🏦 Tambah Rekening';
+  $('bankNameInput').value = '';
+  $('bankAmountInput').value = '';
+  $('deleteBankBtn').style.display = 'none';
+  openBankEditModal();
+};
+
+document.querySelectorAll('#bankCurrPick .curr-opt').forEach(b=>{
+  b.onclick = () => {
+    const rawOld = parseInt($('bankAmountInput').value.replace(/\D/g,''),10) || 0;
+    const idr = convertToIDR(rawOld, bankCurr);
+
+    bankCurr = b.dataset.curr;
+    document.querySelectorAll('#bankCurrPick .curr-opt').forEach(x=>x.classList.toggle('on', x===b));
+    $('bankAmountLabel').textContent = budgetCurrLabel(bankCurr);
+
+    const converted = (rawOld>0 && idr!==null) ? convertFromIDR(idr, bankCurr) : null;
+    $('bankAmountInput').value = (converted!==null && converted>0) ? Math.round(converted).toLocaleString('id-ID') : '';
+    updateBankPreview();
+  };
+});
+
+$('bankAmountInput').addEventListener('input', e=>{
+  const raw = e.target.value.replace(/\D/g,'');
+  e.target.value = raw ? Number(raw).toLocaleString('id-ID') : '';
+  updateBankPreview();
+});
+
+$('saveBankBtn').onclick = () => {
+  const name = $('bankNameInput').value.trim();
+  const idr = bankInputToIDR();
+  if (!name || idr===null || idr<0) return;
+  if (bankEditId) {
+    const b = data.banks.find(x=>x.id===bankEditId);
+    if (b) { b.name = name; b.amount = Math.round(idr); }
+  } else {
+    data.banks.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), name, amount: Math.round(idr) });
+  }
+  saveData(data);
+  bankEditModal.classList.remove('open');
+  renderBankList();
+};
+
+$('deleteBankBtn').onclick = () => {
+  if (!bankEditId) return;
+  if (!confirm('Hapus rekening ini?')) return;
+  data.banks = data.banks.filter(x=>x.id!==bankEditId);
+  saveData(data);
+  bankEditModal.classList.remove('open');
+  renderBankList();
+};
+
+$('closeBankEditModal').onclick = () => bankEditModal.classList.remove('open');
+$('bankEditModalBg').onclick = () => bankEditModal.classList.remove('open');
+
+$('bankBtn').onclick = () => { renderBankList(); bankModal.classList.add('open'); };
+$('closeBankModal').onclick = () => bankModal.classList.remove('open');
+$('bankModalBg').onclick = () => bankModal.classList.remove('open');
+
 /* ================= BACKUP & RESTORE ================= */
 const backupModal = $('backupModal');
 $('backupBtn').onclick = () => {
@@ -1104,7 +1291,9 @@ $('importFile').addEventListener('change', (e) => {
       data = {
         expenses: incoming.expenses || [],
         budgets: incoming.budgets || {},
+        banks: Array.isArray(incoming.banks) ? incoming.banks : [],
         theme: incoming.theme || data.theme,
+        rates: incoming.rates || data.rates,
       };
       saveData(data);
       render();
