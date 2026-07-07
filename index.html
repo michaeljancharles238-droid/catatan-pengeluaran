@@ -46,12 +46,12 @@ input { font:inherit; color:var(--text); }
 .wrap { max-width:720px; margin:0 auto; padding:24px 16px 112px; }
 
 /* ============ HEADER ============ */
-.header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; }
-.brand { display:flex; align-items:center; gap:12px; min-width:0; }
+.header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:24px; }
+.brand { display:flex; align-items:flex-start; gap:10px; min-width:0; flex:1; }
 .brand > div { min-width:0; }
-.logo { width:40px; height:40px; border-radius:16px; display:flex; align-items:center; justify-content:center;
-  font-size:18px; background:linear-gradient(135deg,var(--sky),var(--indigo)); box-shadow:var(--shadow); flex-shrink:0; }
-.brand h1 { font-size:17px; font-weight:800; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.logo { width:36px; height:36px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+  font-size:16px; background:linear-gradient(135deg,var(--sky),var(--indigo)); box-shadow:var(--shadow); flex-shrink:0; }
+.brand h1 { font-size:16px; font-weight:800; line-height:1.25; }
 .brand p { font-size:11px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .icon-btn { width:36px; height:36px; border-radius:11px; border:1px solid var(--border);
   background:var(--card); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
