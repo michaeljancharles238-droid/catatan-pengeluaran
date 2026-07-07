@@ -100,27 +100,31 @@ html.dark .tabs button.on { color:var(--sky); }
 /* ============ KATEGORI ============ */
 .cat-row { margin-bottom:14px; }
 .cat-row:last-child { margin-bottom:0; }
-.cat-head { display:flex; justify-content:space-between; align-items:center; font-size:13.5px; margin-bottom:5px; }
-.cat-head .name { font-weight:500; }
-.cat-head .val { font-weight:700; }
+.cat-head { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13.5px; margin-bottom:5px; }
+.cat-head .name { font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cat-head .val { font-weight:700; white-space:nowrap; flex-shrink:0; }
 .cat-head .pct { font-size:11px; color:var(--subtle); font-weight:400; margin-left:5px; }
+.cat-row .fx-mini { justify-content:flex-end; margin:-1px 0 6px; }
 .track { height:8px; border-radius:99px; background:var(--track); overflow:hidden; }
 .fill { height:100%; border-radius:99px; transition:width .5s; }
 
 /* ============ RIWAYAT ============ */
 .day-group { border:1px solid var(--border); background:var(--card); border-radius:16px; overflow:hidden; margin-bottom:12px; }
-.day-head { display:flex; justify-content:space-between; padding:10px 16px; font-size:11.5px; font-weight:600;
-  color:var(--sub); background:var(--hover); }
-.day-head .tot { color:var(--text); }
-.tx { display:flex; align-items:center; gap:12px; padding:12px 16px; border-top:1px solid var(--border); }
+.day-head { padding:10px 16px; font-size:11.5px; font-weight:600; color:var(--sub); background:var(--hover); }
+.day-head-main { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.day-head .tot { color:var(--text); white-space:nowrap; flex-shrink:0; }
+.day-head .fx-mini { justify-content:flex-end; margin-top:4px; }
+.tx { padding:12px 16px; border-top:1px solid var(--border); }
+.tx-main { display:flex; align-items:center; gap:12px; }
 .tx .ico { width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center;
   font-size:16px; flex-shrink:0; }
 .tx .info { flex:1; min-width:0; }
 .tx .note { font-size:13.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.tx .cat { font-size:11px; color:var(--subtle); }
-.tx .amt { font-size:13.5px; font-weight:700; white-space:nowrap; }
-.tx .del { width:32px; height:32px; border-radius:10px; font-size:14px; color:var(--rose); opacity:.55; }
+.tx .cat { font-size:11px; color:var(--subtle); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tx .amt { font-size:13.5px; font-weight:700; white-space:nowrap; flex-shrink:0; }
+.tx .del { width:32px; height:32px; border-radius:10px; font-size:14px; color:var(--rose); opacity:.55; flex-shrink:0; }
 .tx .del:active { background:rgba(251,113,133,.12); opacity:1; }
+.tx .fx-mini { justify-content:flex-end; margin:6px 0 0 48px; }
 
 /* ============ BUDGET ============ */
 .b-card { border:1px solid var(--border); background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px; }
@@ -145,11 +149,9 @@ html.dark .tabs button.on { color:var(--sky); }
   background:var(--chip); color:var(--text); margin:14px 0 18px; transition:opacity .2s; }
 .fx-refresh:disabled { opacity:.5; }
 .fx-mini { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
-.val-wrap .fx-mini { justify-content:flex-end; }
 .fx-chip { font-size:10px; font-weight:600; color:var(--sub); background:var(--chip); border-radius:6px;
   padding:2px 6px; white-space:nowrap; line-height:1.5; }
 .hero .fx-chip { background:rgba(255,255,255,.16); color:#f0f9ff; font-size:11px; padding:3px 8px; }
-.val-wrap { display:flex; flex-direction:column; align-items:flex-end; }
 
 /* ============ PILIH MATA UANG (BUDGET) ============ */
 .curr-pick { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:16px; }
@@ -580,11 +582,9 @@ function renderCats(exp, total) {
       return `<div class="cat-row">
         <div class="cat-head">
           <span class="name">${c.emoji} ${c.label}</span>
-          <span class="val-wrap">
-            <span class="val">${fmtIDR(c.total)}<span class="pct">${pct.toFixed(0)}%</span></span>
-            ${fxLine(c.total)}
-          </span>
+          <span class="val">${fmtIDR(c.total)}<span class="pct">${pct.toFixed(0)}%</span></span>
         </div>
+        ${fxLine(c.total)}
         <div class="track"><div class="fill" style="width:${pct}%;background:${c.color}"></div></div>
       </div>`;
     }).join('');
@@ -605,19 +605,25 @@ function renderHistory(exp) {
     const d = new Date(date+'T00:00:00');
     return `<section class="day-group">
       <div class="day-head">
-        <span>${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}</span>
-        <span class="val-wrap"><span class="tot">${fmtIDR(dayTotal)}</span>${fxLine(dayTotal)}</span>
+        <div class="day-head-main">
+          <span>${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}</span>
+          <span class="tot">${fmtIDR(dayTotal)}</span>
+        </div>
+        ${fxLine(dayTotal)}
       </div>
       ${items.map(e=>{
         const c=catById(e.category);
         return `<div class="tx">
-          <div class="ico" style="background:${c.color}22">${c.emoji}</div>
-          <div class="info">
-            <p class="note">${esc(e.note)||c.label}</p>
-            <p class="cat">${c.label}</p>
+          <div class="tx-main">
+            <div class="ico" style="background:${c.color}22">${c.emoji}</div>
+            <div class="info">
+              <p class="note">${esc(e.note)||c.label}</p>
+              <p class="cat">${c.label}</p>
+            </div>
+            <span class="amt">-${fmtIDR(e.amount)}</span>
+            <button class="del" onclick="delExpense('${e.id}')" aria-label="Hapus">🗑️</button>
           </div>
-          <span class="val-wrap"><span class="amt">-${fmtIDR(e.amount)}</span>${fxLine(e.amount)}</span>
-          <button class="del" onclick="delExpense('${e.id}')" aria-label="Hapus">🗑️</button>
+          ${fxLine(e.amount)}
         </div>`;
       }).join('')}
     </section>`;
