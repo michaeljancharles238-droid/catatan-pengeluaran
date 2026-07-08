@@ -67,6 +67,7 @@ input { font:inherit; color:var(--text); }
 /* ============ KARTU TOTAL ============ */
 .hero { position:relative; overflow:hidden; border-radius:24px; padding:20px; margin-bottom:16px; color:#fff;
   background:linear-gradient(135deg,#38bdf8,#0284c7 55%,#4f46e5); box-shadow:var(--shadow); }
+.hero.saldo-hero { background:linear-gradient(135deg,#34d399,#059669 55%,#065f46); }
 .hero::before { content:''; position:absolute; right:-32px; top:-32px; width:144px; height:144px;
   border-radius:50%; background:rgba(255,255,255,.10); }
 .hero::after { content:''; position:absolute; right:-8px; top:40px; width:80px; height:80px;
@@ -85,7 +86,7 @@ input { font:inherit; color:var(--text); }
 /* ============ TAB ============ */
 .tabs { display:flex; gap:4px; border:1px solid var(--border); background:var(--card);
   border-radius:16px; padding:4px; margin-bottom:16px; }
-.tabs button { flex:1; padding:9px 0; border-radius:12px; font-size:13.5px; font-weight:600; color:var(--sub); transition:all .2s; }
+.tabs button { flex:1; padding:9px 0; border-radius:12px; font-size:12.5px; font-weight:600; color:var(--sub); transition:all .2s; white-space:nowrap; }
 .tabs button.on { background:rgba(56,189,248,.14); color:var(--sky-deep); }
 html.dark .tabs button.on { color:var(--sky); }
 
@@ -216,7 +217,6 @@ html.dark .cat-opt.on { color:var(--sky); }
       </div>
     </div>
     <div class="header-icons">
-      <button class="icon-btn" id="bankBtn" aria-label="Saldo bank">🏦</button>
       <button class="icon-btn" id="currencyBtn" aria-label="Kurs mata uang">🌐</button>
       <button class="icon-btn" id="backupBtn" aria-label="Backup & Restore">💾</button>
       <button class="icon-btn" id="themeBtn" aria-label="Ganti tema">🌙</button>
@@ -245,6 +245,7 @@ html.dark .cat-opt.on { color:var(--sky); }
     <button data-tab="ringkasan">Ringkasan</button>
     <button data-tab="riwayat">Riwayat</button>
     <button data-tab="budget">Budget</button>
+    <button data-tab="saldo">Saldo</button>
   </div>
 
   <div id="tab-ringkasan">
@@ -268,53 +269,31 @@ html.dark .cat-opt.on { color:var(--sky); }
     <p class="hint">Atur batas pengeluaran per kategori. Progress dihitung dari bulan yang sedang dipilih.</p>
     <div id="budgetList"></div>
   </div>
+
+  <div id="tab-saldo" style="display:none">
+    <div class="hero saldo-hero">
+      <p class="label">Sisa Saldo Bersih</p>
+      <p class="amount" id="netBalanceAmount">Rp 0</p>
+      <div class="stats" id="netBalanceStats"></div>
+      <div class="stats" id="saldoFxStats" style="display:none;gap:6px"></div>
+    </div>
+
+    <section class="card">
+      <h2>Status Budget Bulan Ini</h2>
+      <div id="saldoBudgetSummary"></div>
+    </section>
+
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2 style="margin-bottom:0">Rekening Bank</h2>
+        <button class="b-edit" id="addBankBtn">➕ Tambah</button>
+      </div>
+      <div id="bankList"></div>
+    </section>
+  </div>
 </div>
 
 <button class="fab" id="addBtn" aria-label="Tambah pengeluaran">+</button>
-
-<div class="modal" id="budgetEditModal">
-  <div class="modal-bg" id="budgetEditModalBg"></div>
-  <div class="sheet">
-    <div class="sheet-head">
-      <h2 id="budgetEditTitle">✏️ Atur Budget</h2>
-      <button class="close" id="closeBudgetEditModal" aria-label="Tutup">✕</button>
-    </div>
-
-    <label class="flabel">Masukkan dalam mata uang</label>
-    <div class="curr-pick" id="budgetCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
-      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
-      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
-    </div>
-
-    <label class="flabel" id="budgetAmountLabel">Jumlah (Rp)</label>
-    <input class="finput big" id="budgetAmountInput" inputmode="numeric" placeholder="0">
-    <div class="budget-preview" id="budgetConvertedPreview"></div>
-
-    <button class="save-btn" id="saveBudgetEditBtn">Simpan budget</button>
-    <button class="danger-btn" id="clearBudgetBtn">Hapus budget kategori ini</button>
-  </div>
-</div>
-
-<div class="modal" id="bankModal">
-  <div class="modal-bg" id="bankModalBg"></div>
-  <div class="sheet">
-    <div class="sheet-head">
-      <h2>🏦 Saldo Bank</h2>
-      <button class="close" id="closeBankModal" aria-label="Tutup">✕</button>
-    </div>
-
-    <div class="hero" style="padding:16px;margin-bottom:16px">
-      <p class="label">Total Saldo</p>
-      <p class="amount" style="font-size:24px" id="bankTotalAmount">Rp 0</p>
-      <div class="stats" id="bankFxStats" style="display:none;gap:6px;margin-top:8px"></div>
-    </div>
-
-    <div id="bankList"></div>
-    <button class="fx-refresh" id="addBankBtn" style="margin-top:2px">➕ Tambah Rekening</button>
-  </div>
-</div>
 
 <div class="modal" id="bankEditModal">
   <div class="modal-bg" id="bankEditModalBg"></div>
@@ -340,6 +319,31 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <button class="save-btn" id="saveBankBtn">Simpan rekening</button>
     <button class="danger-btn" id="deleteBankBtn" style="display:none">Hapus rekening ini</button>
+  </div>
+</div>
+
+<div class="modal" id="budgetEditModal">
+  <div class="modal-bg" id="budgetEditModalBg"></div>
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="budgetEditTitle">✏️ Atur Budget</h2>
+      <button class="close" id="closeBudgetEditModal" aria-label="Tutup">✕</button>
+    </div>
+
+    <label class="flabel">Masukkan dalam mata uang</label>
+    <div class="curr-pick" id="budgetCurrPick">
+      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
+      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
+    </div>
+
+    <label class="flabel" id="budgetAmountLabel">Jumlah (Rp)</label>
+    <input class="finput big" id="budgetAmountInput" inputmode="numeric" placeholder="0">
+    <div class="budget-preview" id="budgetConvertedPreview"></div>
+
+    <button class="save-btn" id="saveBudgetEditBtn">Simpan budget</button>
+    <button class="danger-btn" id="clearBudgetBtn">Hapus budget kategori ini</button>
   </div>
 </div>
 
@@ -531,7 +535,7 @@ function render() {
 
   document.querySelectorAll('.tabs button').forEach(b=>
     b.classList.toggle('on', b.dataset.tab===activeTab));
-  ['ringkasan','riwayat','budget'].forEach(t=>
+  ['ringkasan','riwayat','budget','saldo'].forEach(t=>
     $('tab-'+t).style.display = (t===activeTab ? '' : 'none'));
 
   // Data grafik harian
@@ -546,6 +550,7 @@ function render() {
   renderCats(exp, total);
   renderHistory(exp);
   renderBudget(exp);
+  renderSaldoTab(total);
 }
 
 /* ================= GRAFIK CANVAS MANUAL ================= */
@@ -1107,25 +1112,18 @@ $('refreshRateBtn').onclick = async () => {
 };
 
 /* ================= SALDO BANK ================= */
-const bankModal = $('bankModal');
 const bankEditModal = $('bankEditModal');
 let bankEditId = null; // null = mode tambah baru, selain itu = mode ubah
 let bankCurr = 'idr';
 
-function renderBankList() {
-  const total = data.banks.reduce((s,b)=>s+b.amount,0);
-  $('bankTotalAmount').textContent = fmtIDR(total);
-  const fxEl = $('bankFxStats');
-  if (data.rates && total>0) {
-    fxEl.style.display='flex';
-    fxEl.innerHTML = FX_CODES.map(code =>
-      `<span class="fx-chip">${FX_META[code].flag} ${FX_META[code].fmtCompact(idrToForeign(total, code))}</span>`
-    ).join('');
-  } else { fxEl.style.display='none'; fxEl.innerHTML=''; }
+function totalBankBalance() {
+  return data.banks.reduce((s,b)=>s+b.amount,0);
+}
 
+function renderBankList() {
   const listEl = $('bankList');
   if (data.banks.length===0) {
-    listEl.innerHTML = `<div class="empty" style="padding:20px 4px"><div class="ico">🏦</div>Belum ada rekening. Tap "Tambah Rekening" untuk mulai mencatat saldo.</div>`;
+    listEl.innerHTML = `<div class="empty" style="padding:20px 4px"><div class="ico">🏦</div>Belum ada rekening. Tap "Tambah" untuk mulai mencatat saldo.</div>`;
     return;
   }
   listEl.innerHTML = data.banks.map(b => `
@@ -1140,6 +1138,45 @@ function renderBankList() {
         <button class="b-edit" onclick="editBank('${b.id}')">✏️ Ubah</button>
       </div>
     </section>`).join('');
+}
+
+function renderSaldoTab(totalExpenseThisMonth) {
+  const totalBank = totalBankBalance();
+  const net = totalBank - totalExpenseThisMonth;
+
+  $('netBalanceAmount').textContent = fmtIDR(net);
+  $('netBalanceAmount').style.color = net < 0 ? '#fecaca' : '';
+  $('netBalanceStats').innerHTML = `
+    <span>Saldo Bank: <b>${fmtIDR(totalBank)}</b></span>
+    <span>Pengeluaran bulan ini: <b>-${fmtIDR(totalExpenseThisMonth)}</b></span>`;
+
+  const fxEl = $('saldoFxStats');
+  if (data.rates && totalBank>0) {
+    fxEl.style.display='flex';
+    fxEl.innerHTML = FX_CODES.map(code =>
+      `<span class="fx-chip">${FX_META[code].flag} ${FX_META[code].fmtCompact(idrToForeign(totalBank, code))}</span>`
+    ).join('');
+  } else { fxEl.style.display='none'; fxEl.innerHTML=''; }
+
+  // Ringkasan budget: total limit yang sudah diatur vs total pengeluaran bulan ini
+  const totalBudget = Object.values(data.budgets).reduce((s,v)=>s+(v||0),0);
+  const budgetEl = $('saldoBudgetSummary');
+  if (totalBudget<=0) {
+    budgetEl.innerHTML = `<div class="empty" style="padding:16px 4px">Belum ada budget yang diatur. Atur di tab Budget untuk melihat ringkasannya di sini.</div>`;
+  } else {
+    const pct = (totalExpenseThisMonth/totalBudget)*100;
+    const over = totalExpenseThisMonth > totalBudget;
+    const color = over ? 'var(--rose)' : pct>=80 ? 'var(--amber)' : 'var(--sky)';
+    budgetEl.innerHTML = `
+      <div class="rate-line"><span>Total Budget</span><span>${fmtIDR(totalBudget)}</span></div>
+      <div class="rate-line"><span>Terpakai</span><span>${fmtIDR(totalExpenseThisMonth)} (${pct.toFixed(0)}%)</span></div>
+      <div class="track" style="margin-top:8px"><div class="fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div>
+      <p class="b-msg ${over?'over':pct>=80?'warn':''}" style="margin-top:8px">
+        ${over ? `⚠️ Pengeluaran melebihi budget ${fmtIDR(totalExpenseThisMonth-totalBudget)}` : `Sisa budget ${fmtIDR(totalBudget-totalExpenseThisMonth)}`}
+      </p>`;
+  }
+
+  renderBankList();
 }
 
 function bankInputToIDR() {
@@ -1223,7 +1260,7 @@ $('saveBankBtn').onclick = () => {
   }
   saveData(data);
   bankEditModal.classList.remove('open');
-  renderBankList();
+  render();
 };
 
 $('deleteBankBtn').onclick = () => {
@@ -1232,15 +1269,11 @@ $('deleteBankBtn').onclick = () => {
   data.banks = data.banks.filter(x=>x.id!==bankEditId);
   saveData(data);
   bankEditModal.classList.remove('open');
-  renderBankList();
+  render();
 };
 
 $('closeBankEditModal').onclick = () => bankEditModal.classList.remove('open');
 $('bankEditModalBg').onclick = () => bankEditModal.classList.remove('open');
-
-$('bankBtn').onclick = () => { renderBankList(); bankModal.classList.add('open'); };
-$('closeBankModal').onclick = () => bankModal.classList.remove('open');
-$('bankModalBg').onclick = () => bankModal.classList.remove('open');
 
 /* ================= BACKUP & RESTORE ================= */
 const backupModal = $('backupModal');
