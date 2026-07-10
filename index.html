@@ -154,7 +154,10 @@ html.dark .tabs button.on { color:var(--sky); }
 .fx-mini { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
 .fx-chip { font-size:10px; font-weight:600; color:var(--sub); background:var(--chip); border-radius:6px;
   padding:2px 6px; white-space:nowrap; line-height:1.5; }
+.fx-chip .fx-code { color:var(--sky-deep); font-weight:800; letter-spacing:.02em; }
+html.dark .fx-chip .fx-code { color:var(--sky); }
 .hero .fx-chip { background:rgba(255,255,255,.16); color:#f0f9ff; font-size:11px; padding:3px 8px; }
+.hero .fx-chip .fx-code { color:#fff; }
 
 /* ============ PILIH MATA UANG (BUDGET) ============ */
 .curr-pick { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:16px; }
@@ -308,10 +311,10 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <label class="flabel">Saldo dalam mata uang</label>
     <div class="curr-pick" id="bankCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
-      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
-      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
+      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
+      <button type="button" class="curr-opt" data-curr="thb">Baht</button>
     </div>
     <label class="flabel" id="bankAmountLabel">Saldo (Rp)</label>
     <input class="finput big" id="bankAmountInput" inputmode="numeric" placeholder="0">
@@ -332,10 +335,10 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <label class="flabel">Masukkan dalam mata uang</label>
     <div class="curr-pick" id="budgetCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
-      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
-      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
+      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
+      <button type="button" class="curr-opt" data-curr="thb">Baht</button>
     </div>
 
     <label class="flabel" id="budgetAmountLabel">Jumlah (Rp)</label>
@@ -360,10 +363,10 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <label class="flabel">Konversi cepat</label>
     <div class="curr-pick" id="fxCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
-      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
-      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
+      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
+      <button type="button" class="curr-opt" data-curr="thb">Baht</button>
     </div>
     <label class="flabel" id="fxAmountLabel">Jumlah (Rp)</label>
     <input class="finput" id="fxAmount" inputmode="numeric" placeholder="Contoh: 100.000">
@@ -411,10 +414,10 @@ html.dark .cat-opt.on { color:var(--sky); }
     </div>
     <label class="flabel">Masukkan dalam mata uang</label>
     <div class="curr-pick" id="expenseCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">🇮🇩 Rupiah</button>
-      <button type="button" class="curr-opt" data-curr="usd">🇺🇸 USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">🇰🇭 Riel</button>
-      <button type="button" class="curr-opt" data-curr="thb">🇹🇭 Baht</button>
+      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt" data-curr="usd">USD</button>
+      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
+      <button type="button" class="curr-opt" data-curr="thb">Baht</button>
     </div>
     <label class="flabel" id="fAmountLabel" for="fAmount">Jumlah (Rp)</label>
     <input class="finput big" id="fAmount" inputmode="numeric" placeholder="25.000" autocomplete="off">
@@ -898,10 +901,13 @@ $('fNote').addEventListener('keydown', e=>{ if(e.key==='Enter') $('saveBtn').cli
 const RATE_MAX_AGE = 24 * 3600 * 1000; // maksimal 1x sehari
 
 // Metadata semua mata uang asing yang didukung. Tambah entri di sini untuk menambah mata uang baru.
+// Catatan: sengaja TIDAK memakai emoji bendera negara — banyak Android (termasuk beberapa merek/versi ColorOS,
+// mis. Oppo) tidak mendukung rendering emoji bendera tertentu (mis. bendera Kamboja) dan malah menampilkan huruf mentah "KH".
+// Kode teks (USD/KHR/THB) dijamin tampil identik di semua perangkat karena hanya huruf biasa, bukan emoji.
 const FX_META = {
-  usd: { label: 'Dolar AS',      short: 'USD',  flag: '🇺🇸', fmt: n => fmtUSD(n), fmtCompact: n => fmtUSD(n,true) },
-  khr: { label: 'Riel Kamboja',  short: 'Riel', flag: '🇰🇭', fmt: n => fmtKHR(n), fmtCompact: n => fmtKHR(n,true) },
-  thb: { label: 'Baht Thailand', short: 'Baht', flag: '🇹🇭', fmt: n => fmtTHB(n), fmtCompact: n => fmtTHB(n,true) },
+  usd: { label: 'Dolar AS',      short: 'USD',  code: 'USD', fmt: n => fmtUSD(n), fmtCompact: n => fmtUSD(n,true) },
+  khr: { label: 'Riel Kamboja',  short: 'Riel', code: 'KHR', fmt: n => fmtKHR(n), fmtCompact: n => fmtKHR(n,true) },
+  thb: { label: 'Baht Thailand', short: 'Baht', code: 'THB', fmt: n => fmtTHB(n), fmtCompact: n => fmtTHB(n,true) },
 };
 const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb']
 
@@ -1017,7 +1023,7 @@ function updateFxDisplay(totalIdr) {
   el.style.display='flex';
   divider.style.display='block';
   el.innerHTML = FX_CODES.map(code =>
-    `<span class="fx-chip">${FX_META[code].flag} ${FX_META[code].fmtCompact(idrToForeign(totalIdr, code))}</span>`
+    `<span class="fx-chip"><b class="fx-code">${FX_META[code].code}</b> ${FX_META[code].fmtCompact(idrToForeign(totalIdr, code))}</span>`
   ).join('');
 }
 
@@ -1025,7 +1031,7 @@ function updateFxDisplay(totalIdr) {
 function fxLine(idrAmount) {
   if (!data.rates || !idrAmount || idrAmount<=0) return '';
   const chips = FX_CODES.map(code =>
-    `<span class="fx-chip">${FX_META[code].flag} ${FX_META[code].fmtCompact(idrToForeign(idrAmount, code))}</span>`
+    `<span class="fx-chip"><b class="fx-code">${FX_META[code].code}</b> ${FX_META[code].fmtCompact(idrToForeign(idrAmount, code))}</span>`
   );
   return `<div class="fx-mini">${chips.join('')}</div>`;
 }
@@ -1158,7 +1164,7 @@ function renderSaldoTab(totalExpenseThisMonth) {
   if (data.rates && totalBank>0) {
     fxEl.style.display='flex';
     fxEl.innerHTML = FX_CODES.map(code =>
-      `<span class="fx-chip">${FX_META[code].flag} ${FX_META[code].fmtCompact(idrToForeign(totalBank, code))}</span>`
+      `<span class="fx-chip"><b class="fx-code">${FX_META[code].code}</b> ${FX_META[code].fmtCompact(idrToForeign(totalBank, code))}</span>`
     ).join('');
   } else { fxEl.style.display='none'; fxEl.innerHTML=''; }
 
