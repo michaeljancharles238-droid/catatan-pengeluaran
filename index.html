@@ -905,27 +905,31 @@ const FX_META = {
 };
 const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb']
 
-// Angka besar disingkat (1,2jt / 350rb) supaya chip konversi tetap ringkas & tidak memenuhi layar.
-function shortenNum(n) {
-  const abs = Math.abs(n);
-  if (abs>=1e6) return (n/1e6).toFixed(1).replace('.0','')+'jt';
-  if (abs>=1e3) return Math.round(n/1e3)+'rb';
-  return String(Math.round(n*100)/100);
+// Hanya menyingkat pada skala jutaan (X,Xjt) — di bawah itu tampilkan angka penuh
+// supaya tidak ada pembulatan yang menyesatkan (mis. USD kecil dibulatkan ke ribuan terdekat).
+function shortenMillions(n) {
+  return (n/1e6).toFixed(1).replace('.0','')+'jt';
 }
 function fmtUSD(n, compact) {
   if (n===null || isNaN(n)) return '-';
-  if (compact) return '$'+shortenNum(n);
+  if (compact) {
+    if (Math.abs(n)>=1e6) return '$'+shortenMillions(n);
+    return '$'+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
+  }
   try { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n); }
   catch(e) { return '$'+n.toFixed(2); }
 }
 function fmtKHR(n, compact) {
   if (n===null || isNaN(n)) return '-';
-  if (compact) return shortenNum(n)+' ៛';
+  if (compact && Math.abs(n)>=1e6) return shortenMillions(n)+' ៛';
   return new Intl.NumberFormat('id-ID',{maximumFractionDigits:0}).format(Math.round(n)) + ' ៛';
 }
 function fmtTHB(n, compact) {
   if (n===null || isNaN(n)) return '-';
-  if (compact) return '฿'+shortenNum(n);
+  if (compact) {
+    if (Math.abs(n)>=1e6) return '฿'+shortenMillions(n);
+    return '฿'+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
+  }
   return '฿' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 }
 
