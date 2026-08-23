@@ -68,6 +68,7 @@ input { font:inherit; color:var(--text); }
 .hero { position:relative; overflow:hidden; border-radius:24px; padding:20px; margin-bottom:16px; color:#fff;
   background:linear-gradient(135deg,#38bdf8,#0284c7 55%,#4f46e5); box-shadow:var(--shadow); }
 .hero.saldo-hero { background:linear-gradient(135deg,#34d399,#059669 55%,#065f46); }
+.hero.saldo-hero.needs-update { background:linear-gradient(135deg,#fbbf24,#d97706 55%,#92400e); }
 .hero::before { content:''; position:absolute; right:-32px; top:-32px; width:144px; height:144px;
   border-radius:50%; background:rgba(255,255,255,.10); }
 .hero::after { content:''; position:absolute; right:-8px; top:40px; width:80px; height:80px;
@@ -132,6 +133,7 @@ html.dark .tabs button.on { color:var(--sky); }
 /* ============ BUDGET ============ */
 .b-card { border:1px solid var(--border); background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px; }
 .b-card.over { border-color:rgba(251,113,133,.5); }
+.b-card.stale { border-color:rgba(251,191,36,.4); }
 .b-head { display:flex; align-items:center; gap:12px; }
 .b-head .info { flex:1; }
 .b-head .name { font-size:13.5px; font-weight:600; }
@@ -139,6 +141,9 @@ html.dark .tabs button.on { color:var(--sky); }
 .b-edit { font-size:11.5px; font-weight:600; padding:7px 12px; border-radius:10px; background:var(--chip); }
 .b-msg { font-size:11.5px; font-weight:500; margin-top:6px; color:var(--subtle); }
 .b-msg.warn { color:var(--amber); } .b-msg.over { color:var(--rose); }
+.stale-badge { display:inline-block; font-size:10px; font-weight:700; color:var(--amber);
+  background:rgba(251,191,36,.14); border-radius:6px; padding:2px 6px; margin-top:4px; }
+.month-tag { font-size:11px; color:var(--sub); margin-bottom:10px; }
 .hint { font-size:11.5px; color:var(--sub); padding:0 4px; margin-bottom:12px; }
 
 /* ============ KURS MATA UANG ============ */
@@ -275,7 +280,7 @@ html.dark .cat-opt.on { color:var(--sky); }
 
   <div id="tab-saldo" style="display:none">
     <div class="hero saldo-hero">
-      <p class="label">Sisa Saldo Bersih</p>
+      <p class="label" id="netBalanceLabel">Sisa Saldo Bersih</p>
       <p class="amount" id="netBalanceAmount">Rp 0</p>
       <div class="stats" id="netBalanceStats"></div>
       <div class="stats" id="saldoFxStats" style="display:none;gap:6px"></div>
@@ -287,10 +292,11 @@ html.dark .cat-opt.on { color:var(--sky); }
     </section>
 
     <section class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
         <h2 style="margin-bottom:0">Rekening Bank</h2>
         <button class="b-edit" id="addBankBtn">➕ Tambah</button>
       </div>
+      <p class="month-tag" id="bankMonthTag">Saldo untuk bulan —</p>
       <div id="bankList"></div>
     </section>
   </div>
@@ -308,6 +314,7 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <label class="flabel" for="bankNameInput">Nama Rekening</label>
     <input class="finput" id="bankNameInput" placeholder="Contoh: CIMB Niaga" autocomplete="off">
+    <p class="hint" id="bankHint" style="margin:-4px 0 0"></p>
 
     <label class="flabel">Saldo dalam mata uang</label>
     <div class="curr-pick" id="bankCurrPick">
@@ -460,14 +467,26 @@ function loadData() {
   let d;
   try {
     const raw = localStorage.getItem(KEY);
-    d = raw ? JSON.parse(raw) : (memStore || { expenses: [], budgets: {}, theme: 'dark', banks: [] });
+    d = raw ? JSON.parse(raw) : (memStore || { expenses: [], budgets: {}, theme: 'dark', banks: [], bankBalances: {} });
   } catch(e) {
-    d = memStore || { expenses: [], budgets: {}, theme: 'dark', banks: [] };
+    d = memStore || { expenses: [], budgets: {}, theme: 'dark', banks: [], bankBalances: {} };
   }
   // Migrasi: format kurs lama (idrPerUsd/khrPerUsd) belum punya Baht — kosongkan agar difetch ulang otomatis
   if (d.rates && !d.rates.perUsd) d.rates = null;
   // Migrasi: data lama belum punya daftar rekening bank
   if (!Array.isArray(d.banks)) d.banks = [];
+  // Migrasi: data lama belum punya saldo per bulan
+  if (!d.bankBalances || typeof d.bankBalances !== 'object') d.bankBalances = {};
+  // Migrasi: skema lama menyimpan satu angka `amount` langsung di bank (tidak per bulan).
+  // Pindahkan ke bulan SEKARANG sebagai titik awal, lalu hapus field lama.
+  const nowKey = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  d.banks.forEach(b => {
+    if (typeof b.amount === 'number') {
+      const key = b.id + '|' + nowKey;
+      if (!(key in d.bankBalances)) d.bankBalances[key] = b.amount;
+      delete b.amount;
+    }
+  });
   return d;
 }
 function saveData(d) {
@@ -1121,52 +1140,124 @@ $('refreshRateBtn').onclick = async () => {
   btn.disabled = false; btn.textContent = '🔄 Perbarui kurs sekarang';
 };
 
-/* ================= SALDO BANK ================= */
+/* ================= SALDO BANK (per bulan) ================= */
 const bankEditModal = $('bankEditModal');
 let bankEditId = null; // null = mode tambah baru, selain itu = mode ubah
 let bankCurr = 'idr';
 
-function totalBankBalance() {
-  return data.banks.reduce((s,b)=>s+b.amount,0);
+function bankBalanceKey(bankId, mk) { return bankId + '|' + mk; }
+
+// Saldo persis untuk bulan tsb (null jika belum pernah dicatat di bulan itu)
+function getBankBalance(bankId, mk) {
+  const key = bankBalanceKey(bankId, mk);
+  return Object.prototype.hasOwnProperty.call(data.bankBalances, key) ? data.bankBalances[key] : null;
 }
 
-function renderBankList() {
+// Saldo tercatat TERAKHIR pada atau sebelum bulan tsb (untuk carry-forward jika bulan berjalan belum diisi)
+function findLastKnownBalance(bankId, uptoMk) {
+  let best = null;
+  Object.keys(data.bankBalances).forEach(key => {
+    const idx = key.lastIndexOf('|');
+    const id = key.slice(0, idx), mk = key.slice(idx+1);
+    if (id !== bankId || mk > uptoMk) return;
+    if (!best || mk > best.monthKey) best = { monthKey: mk, amount: data.bankBalances[key] };
+  });
+  return best;
+}
+
+function setBankBalance(bankId, mk, amount) {
+  data.bankBalances[bankBalanceKey(bankId, mk)] = amount;
+}
+
+function monthLabel(mk) {
+  const [y,m] = mk.split('-').map(Number);
+  return `${MONTHS[m-1]} ${y}`;
+}
+
+// Total saldo bank untuk bulan tsb. Bank yang belum diisi di bulan ini memakai saldo terakhir (carry-forward)
+// supaya angka tidak drop mendadak ke 0 — tapi tetap ditandai "perlu diperbarui" di daftar.
+function totalBankBalance(mk) {
+  return data.banks.reduce((s,b) => {
+    const exact = getBankBalance(b.id, mk);
+    if (exact !== null) return s + exact;
+    const last = findLastKnownBalance(b.id, mk);
+    return s + (last ? last.amount : 0);
+  }, 0);
+}
+
+function renderBankList(mk) {
+  $('bankMonthTag').textContent = `Saldo untuk bulan ${monthLabel(mk)}`;
   const listEl = $('bankList');
   if (data.banks.length===0) {
     listEl.innerHTML = `<div class="empty" style="padding:20px 4px"><div class="ico">🏦</div>Belum ada rekening. Tap "Tambah" untuk mulai mencatat saldo.</div>`;
     return;
   }
-  listEl.innerHTML = data.banks.map(b => `
-    <section class="b-card">
+  listEl.innerHTML = data.banks.map(b => {
+    const exact = getBankBalance(b.id, mk);
+    if (exact !== null) {
+      return `<section class="b-card">
+        <div class="b-head">
+          <div class="ico" style="width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;background:#38bdf822">🏦</div>
+          <div class="info">
+            <p class="name">${esc(b.name)}</p>
+            <p class="sub">${fmtIDR(exact)}</p>
+            ${fxLine(exact)}
+          </div>
+          <button class="b-edit" onclick="editBank('${b.id}')">✏️ Ubah</button>
+        </div>
+      </section>`;
+    }
+    // Belum ada catatan utk bulan ini — tampilkan carry-forward dari bulan terakhir yang tercatat + tandai
+    const last = findLastKnownBalance(b.id, mk);
+    return `<section class="b-card stale">
       <div class="b-head">
         <div class="ico" style="width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;background:#38bdf822">🏦</div>
         <div class="info">
           <p class="name">${esc(b.name)}</p>
-          <p class="sub">${fmtIDR(b.amount)}</p>
-          ${fxLine(b.amount)}
+          <p class="sub">${last ? `${fmtIDR(last.amount)} (terakhir: ${monthLabel(last.monthKey)})` : 'Belum ada saldo tercatat'}</p>
+          <span class="stale-badge">⚠️ Perlu diperbarui bulan ini</span>
         </div>
-        <button class="b-edit" onclick="editBank('${b.id}')">✏️ Ubah</button>
+        <button class="b-edit" onclick="editBank('${b.id}')">🔄 Perbarui</button>
       </div>
-    </section>`).join('');
+    </section>`;
+  }).join('');
 }
 
 function renderSaldoTab(totalExpenseThisMonth) {
-  const totalBank = totalBankBalance();
-  const net = totalBank - totalExpenseThisMonth;
+  const mk = monthKey();
+  const banksNeedingUpdate = data.banks.filter(b => getBankBalance(b.id, mk) === null);
+  const needsUpdate = data.banks.length > 0 && banksNeedingUpdate.length > 0;
+  const heroEl = document.querySelector('.saldo-hero');
 
-  $('netBalanceAmount').textContent = fmtIDR(net);
-  $('netBalanceAmount').style.color = net < 0 ? '#fecaca' : '';
-  $('netBalanceStats').innerHTML = `
-    <span>Saldo Bank: <b>${fmtIDR(totalBank)}</b></span>
-    <span>Pengeluaran bulan ini: <b>-${fmtIDR(totalExpenseThisMonth)}</b></span>`;
+  if (needsUpdate) {
+    heroEl.classList.add('needs-update');
+    $('netBalanceLabel').textContent = 'Saldo Belum Lengkap';
+    $('netBalanceAmount').textContent = fmtIDR(0);
+    $('netBalanceAmount').style.color = '';
+    const names = banksNeedingUpdate.map(b=>esc(b.name)).join(', ');
+    $('netBalanceStats').innerHTML =
+      `<span>⚠️ ${banksNeedingUpdate.length} rekening (${names}) belum diperbarui untuk ${monthLabel(mk)}. Perbarui dulu di "Rekening Bank" di bawah untuk melihat saldo bersih bulan ini.</span>`;
+    $('saldoFxStats').style.display = 'none';
+    $('saldoFxStats').innerHTML = '';
+  } else {
+    heroEl.classList.remove('needs-update');
+    $('netBalanceLabel').textContent = 'Sisa Saldo Bersih';
+    const totalBank = totalBankBalance(mk);
+    const net = totalBank - totalExpenseThisMonth;
+    $('netBalanceAmount').textContent = fmtIDR(net);
+    $('netBalanceAmount').style.color = net < 0 ? '#fecaca' : '';
+    $('netBalanceStats').innerHTML = `
+      <span>Saldo Bank: <b>${fmtIDR(totalBank)}</b></span>
+      <span>Pengeluaran bulan ini: <b>-${fmtIDR(totalExpenseThisMonth)}</b></span>`;
 
-  const fxEl = $('saldoFxStats');
-  if (data.rates && totalBank>0) {
-    fxEl.style.display='flex';
-    fxEl.innerHTML = FX_CODES.map(code =>
-      `<span class="fx-chip"><b class="fx-code">${FX_META[code].code}</b> ${FX_META[code].fmtCompact(idrToForeign(totalBank, code))}</span>`
-    ).join('');
-  } else { fxEl.style.display='none'; fxEl.innerHTML=''; }
+    const fxEl = $('saldoFxStats');
+    if (data.rates && totalBank>0) {
+      fxEl.style.display='flex';
+      fxEl.innerHTML = FX_CODES.map(code =>
+        `<span class="fx-chip"><b class="fx-code">${FX_META[code].code}</b> ${FX_META[code].fmtCompact(idrToForeign(totalBank, code))}</span>`
+      ).join('');
+    } else { fxEl.style.display='none'; fxEl.innerHTML=''; }
+  }
 
   // Ringkasan budget: total limit yang sudah diatur vs total pengeluaran bulan ini
   const totalBudget = Object.values(data.budgets).reduce((s,v)=>s+(v||0),0);
@@ -1186,7 +1277,7 @@ function renderSaldoTab(totalExpenseThisMonth) {
       </p>`;
   }
 
-  renderBankList();
+  renderBankList(mk);
 }
 
 function bankInputToIDR() {
@@ -1220,19 +1311,31 @@ function openBankEditModal() {
 window.editBank = (id) => {
   const b = data.banks.find(x=>x.id===id);
   if (!b) return;
+  const mk = monthKey();
   bankEditId = id;
-  $('bankEditTitle').textContent = '🏦 Ubah Rekening';
+  $('bankEditTitle').textContent = `🏦 Ubah Rekening — ${monthLabel(mk)}`;
   $('bankNameInput').value = b.name;
-  $('bankAmountInput').value = Number(b.amount).toLocaleString('id-ID');
+
+  const exact = getBankBalance(id, mk);
+  const carry = exact===null ? findLastKnownBalance(id, mk) : null;
+  const startValue = exact!==null ? exact : (carry ? carry.amount : 0);
+  $('bankAmountInput').value = startValue ? Number(startValue).toLocaleString('id-ID') : '';
+  $('bankHint').innerHTML = exact!==null
+    ? ''
+    : carry
+      ? `📅 Menampilkan saldo terakhir tercatat (${monthLabel(carry.monthKey)}). Perbarui angkanya jika sudah berubah, lalu simpan.`
+      : `Belum ada saldo tercatat untuk rekening ini. Masukkan saldo bulan ${monthLabel(mk)}.`;
   $('deleteBankBtn').style.display = 'block';
   openBankEditModal();
+  updateBankPreview();
 };
 
 $('addBankBtn').onclick = () => {
   bankEditId = null;
-  $('bankEditTitle').textContent = '🏦 Tambah Rekening';
+  $('bankEditTitle').textContent = `🏦 Tambah Rekening — ${monthLabel(monthKey())}`;
   $('bankNameInput').value = '';
   $('bankAmountInput').value = '';
+  $('bankHint').innerHTML = '';
   $('deleteBankBtn').style.display = 'none';
   openBankEditModal();
 };
@@ -1262,11 +1365,15 @@ $('saveBankBtn').onclick = () => {
   const name = $('bankNameInput').value.trim();
   const idr = bankInputToIDR();
   if (!name || idr===null || idr<0) return;
+  const mk = monthKey();
   if (bankEditId) {
     const b = data.banks.find(x=>x.id===bankEditId);
-    if (b) { b.name = name; b.amount = Math.round(idr); }
+    if (b) b.name = name;
+    setBankBalance(bankEditId, mk, Math.round(idr));
   } else {
-    data.banks.push({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), name, amount: Math.round(idr) });
+    const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    data.banks.push({ id, name });
+    setBankBalance(id, mk, Math.round(idr));
   }
   saveData(data);
   bankEditModal.classList.remove('open');
@@ -1275,8 +1382,11 @@ $('saveBankBtn').onclick = () => {
 
 $('deleteBankBtn').onclick = () => {
   if (!bankEditId) return;
-  if (!confirm('Hapus rekening ini?')) return;
+  if (!confirm('Hapus rekening ini beserta seluruh riwayat saldo bulanannya?')) return;
   data.banks = data.banks.filter(x=>x.id!==bankEditId);
+  Object.keys(data.bankBalances).forEach(key => {
+    if (key.startsWith(bankEditId+'|')) delete data.bankBalances[key];
+  });
   saveData(data);
   bankEditModal.classList.remove('open');
   render();
