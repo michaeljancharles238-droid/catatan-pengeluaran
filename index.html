@@ -165,9 +165,9 @@ html.dark .fx-chip .fx-code { color:var(--sky); }
 .hero .fx-chip .fx-code { color:#fff; }
 
 /* ============ PILIH MATA UANG (BUDGET) ============ */
-.curr-pick { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:16px; }
-.curr-opt { padding:11px 0; border-radius:12px; border:1px solid var(--border); font-size:13px;
-  font-weight:700; color:var(--sub); text-align:center; transition:all .15s; }
+.curr-pick { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:16px; }
+.curr-opt { padding:10px 2px; border-radius:12px; border:1px solid var(--border); font-size:12px;
+  font-weight:700; color:var(--sub); text-align:center; transition:all .15s; white-space:nowrap; }
 .curr-opt.on { border-color:var(--sky); background:rgba(56,189,248,.10); color:var(--sky-deep); }
 html.dark .curr-opt.on { color:var(--sky); }
 .budget-preview { margin:-4px 0 16px; min-height:16px; }
@@ -322,6 +322,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="usd">USD</button>
       <button type="button" class="curr-opt" data-curr="khr">Riel</button>
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
+      <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
     </div>
     <label class="flabel" id="bankAmountLabel">Saldo (Rp)</label>
     <input class="finput big" id="bankAmountInput" inputmode="numeric" placeholder="0">
@@ -346,6 +347,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="usd">USD</button>
       <button type="button" class="curr-opt" data-curr="khr">Riel</button>
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
+      <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
     </div>
 
     <label class="flabel" id="budgetAmountLabel">Jumlah (Rp)</label>
@@ -374,6 +376,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="usd">USD</button>
       <button type="button" class="curr-opt" data-curr="khr">Riel</button>
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
+      <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
     </div>
     <label class="flabel" id="fxAmountLabel">Jumlah (Rp)</label>
     <input class="finput" id="fxAmount" inputmode="numeric" placeholder="Contoh: 100.000">
@@ -425,6 +428,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="usd">USD</button>
       <button type="button" class="curr-opt" data-curr="khr">Riel</button>
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
+      <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
     </div>
     <label class="flabel" id="fAmountLabel" for="fAmount">Jumlah (Rp)</label>
     <input class="finput big" id="fAmount" inputmode="numeric" placeholder="25.000" autocomplete="off">
@@ -757,6 +761,7 @@ function budgetCurrLabel(curr) {
   if (curr==='usd') return 'Jumlah (USD)';
   if (curr==='khr') return 'Jumlah (Riel / KHR)';
   if (curr==='thb') return 'Jumlah (Baht / THB)';
+  if (curr==='lkr') return 'Jumlah (Rupee SL / LKR)';
   return 'Jumlah';
 }
 
@@ -924,11 +929,12 @@ const RATE_MAX_AGE = 24 * 3600 * 1000; // maksimal 1x sehari
 // mis. Oppo) tidak mendukung rendering emoji bendera tertentu (mis. bendera Kamboja) dan malah menampilkan huruf mentah "KH".
 // Kode teks (USD/KHR/THB) dijamin tampil identik di semua perangkat karena hanya huruf biasa, bukan emoji.
 const FX_META = {
-  usd: { label: 'Dolar AS',      short: 'USD',  code: 'USD', fmt: n => fmtUSD(n), fmtCompact: n => fmtUSD(n,true) },
-  khr: { label: 'Riel Kamboja',  short: 'Riel', code: 'KHR', fmt: n => fmtKHR(n), fmtCompact: n => fmtKHR(n,true) },
-  thb: { label: 'Baht Thailand', short: 'Baht', code: 'THB', fmt: n => fmtTHB(n), fmtCompact: n => fmtTHB(n,true) },
+  usd: { label: 'Dolar AS',      short: 'USD',   code: 'USD', fmt: n => fmtUSD(n), fmtCompact: n => fmtUSD(n,true) },
+  khr: { label: 'Riel Kamboja',  short: 'Riel',  code: 'KHR', fmt: n => fmtKHR(n), fmtCompact: n => fmtKHR(n,true) },
+  thb: { label: 'Baht Thailand', short: 'Baht',  code: 'THB', fmt: n => fmtTHB(n), fmtCompact: n => fmtTHB(n,true) },
+  lkr: { label: 'Rupee Sri Lanka', short: 'Rupee SL', code: 'LKR', fmt: n => fmtLKR(n), fmtCompact: n => fmtLKR(n,true) },
 };
-const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb']
+const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb','lkr']
 
 // Hanya menyingkat pada skala jutaan (X,Xjt) — di bawah itu tampilkan angka penuh
 // supaya tidak ada pembulatan yang menyesatkan (mis. USD kecil dibulatkan ke ribuan terdekat).
@@ -956,6 +962,14 @@ function fmtTHB(n, compact) {
     return '฿'+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
   }
   return '฿' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+}
+function fmtLKR(n, compact) {
+  if (n===null || isNaN(n)) return '-';
+  if (compact) {
+    if (Math.abs(n)>=1e6) return 'Rs '+shortenMillions(n);
+    return 'Rs '+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
+  }
+  return 'Rs ' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 }
 
 // Ambil kurs "per 1 USD" untuk kode tertentu. USD sendiri selalu 1 (tidak disimpan di perUsd).
@@ -1020,7 +1034,7 @@ async function fetchRates(force) {
       const json = await res.json();
       const usd = json && json.usd;
       if (usd && usd.idr) {
-        data.rates = { perUsd: { idr: usd.idr, khr: usd.khr || null, thb: usd.thb || null }, fetchedAt: now };
+        data.rates = { perUsd: { idr: usd.idr, khr: usd.khr || null, thb: usd.thb || null, lkr: usd.lkr || null }, fetchedAt: now };
         saveData(data);
         return data.rates;
       }
@@ -1071,6 +1085,10 @@ function renderRateInfo() {
     const idrPerThb = idrPerUsd / data.rates.perUsd.thb;
     rows += `<div class="rate-line"><span>1 Baht (THB)</span><span>${fmtIDR(Math.round(idrPerThb))}</span></div>`;
   }
+  if (data.rates.perUsd.lkr) {
+    const idrPerLkr = idrPerUsd / data.rates.perUsd.lkr;
+    rows += `<div class="rate-line"><span>1 Rupee SL (LKR)</span><span>${fmtIDR(Math.round(idrPerLkr))}</span></div>`;
+  }
   rows += `<p class="rate-updated">Update terakhir: ${new Date(data.rates.fetchedAt).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</p>`;
   el.innerHTML = rows;
 }
@@ -1081,6 +1099,7 @@ function fxCurrLabel(curr) {
   if (curr==='usd') return 'Jumlah (USD)';
   if (curr==='khr') return 'Jumlah (Riel / KHR)';
   if (curr==='thb') return 'Jumlah (Baht / THB)';
+  if (curr==='lkr') return 'Jumlah (Rupee SL / LKR)';
   return 'Jumlah';
 }
 
