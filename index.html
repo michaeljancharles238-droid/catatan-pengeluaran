@@ -323,6 +323,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="khr">Riel</button>
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
+      <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
     </div>
     <label class="flabel" id="bankAmountLabel">Saldo (Rp)</label>
     <input class="finput big" id="bankAmountInput" inputmode="numeric" placeholder="0">
@@ -348,6 +349,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="khr">Riel</button>
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
+      <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
     </div>
 
     <label class="flabel" id="budgetAmountLabel">Jumlah (Rp)</label>
@@ -377,13 +379,14 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="khr">Riel</button>
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
+      <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
     </div>
     <label class="flabel" id="fxAmountLabel">Jumlah (Rp)</label>
     <input class="finput" id="fxAmount" inputmode="numeric" placeholder="Contoh: 100.000">
     <div id="fxResult"></div>
 
     <p style="font-size:11px;color:var(--subtle);margin-top:16px;line-height:1.5">
-      Kurs diambil otomatis dari exchangerate-api.com, diperbarui maksimal 1x per hari. Saat offline, kurs terakhir yang tersimpan tetap dipakai.
+      Kurs diambil otomatis dari currency-api (kurs pasar global), diperbarui maksimal 1x per hari. Saat offline, kurs terakhir yang tersimpan tetap dipakai.
     </p>
   </div>
 </div>
@@ -429,6 +432,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="khr">Riel</button>
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
+      <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
     </div>
     <label class="flabel" id="fAmountLabel" for="fAmount">Jumlah (Rp)</label>
     <input class="finput big" id="fAmount" inputmode="numeric" placeholder="25.000" autocomplete="off">
@@ -762,6 +766,7 @@ function budgetCurrLabel(curr) {
   if (curr==='khr') return 'Jumlah (Riel / KHR)';
   if (curr==='thb') return 'Jumlah (Baht / THB)';
   if (curr==='lkr') return 'Jumlah (Rupee SL / LKR)';
+  if (curr==='myr') return 'Jumlah (Ringgit / MYR)';
   return 'Jumlah';
 }
 
@@ -933,8 +938,9 @@ const FX_META = {
   khr: { label: 'Riel Kamboja',  short: 'Riel',  code: 'KHR', fmt: n => fmtKHR(n), fmtCompact: n => fmtKHR(n,true) },
   thb: { label: 'Baht Thailand', short: 'Baht',  code: 'THB', fmt: n => fmtTHB(n), fmtCompact: n => fmtTHB(n,true) },
   lkr: { label: 'Rupee Sri Lanka', short: 'Rupee SL', code: 'LKR', fmt: n => fmtLKR(n), fmtCompact: n => fmtLKR(n,true) },
+  myr: { label: 'Ringgit Malaysia', short: 'Ringgit', code: 'MYR', fmt: n => fmtMYR(n), fmtCompact: n => fmtMYR(n,true) },
 };
-const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb','lkr']
+const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb','lkr','myr']
 
 // Hanya menyingkat pada skala jutaan (X,Xjt) — di bawah itu tampilkan angka penuh
 // supaya tidak ada pembulatan yang menyesatkan (mis. USD kecil dibulatkan ke ribuan terdekat).
@@ -970,6 +976,14 @@ function fmtLKR(n, compact) {
     return 'Rs '+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
   }
   return 'Rs ' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+}
+function fmtMYR(n, compact) {
+  if (n===null || isNaN(n)) return '-';
+  if (compact) {
+    if (Math.abs(n)>=1e6) return 'RM '+shortenMillions(n);
+    return 'RM '+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
+  }
+  return 'RM ' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 }
 
 // Ambil kurs "per 1 USD" untuk kode tertentu. USD sendiri selalu 1 (tidak disimpan di perUsd).
@@ -1022,7 +1036,10 @@ function renderConversionRows(idr, excludeCurr) {
 
 async function fetchRates(force) {
   const now = Date.now();
-  if (!force && data.rates && data.rates.perUsd && (now - data.rates.fetchedAt < RATE_MAX_AGE)) return data.rates;
+  // Kurs tersimpan dianggap "lengkap" hanya jika dulu diambil dengan daftar mata uang yang SAMA dengan versi app ini.
+  // Jadi saat ada mata uang baru (mis. Ringgit) kurs otomatis diambil ulang — tidak perlu tap "Perbarui kurs" manual.
+  const ratesComplete = data.rates && data.rates.codes === FX_CODES.join(',');
+  if (!force && data.rates && data.rates.perUsd && ratesComplete && (now - data.rates.fetchedAt < RATE_MAX_AGE)) return data.rates;
   // Dua sumber (utama + cadangan) — keduanya static JSON via CDN, sangat jarang gagal/diblokir
   const sources = [
     'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json',
@@ -1034,7 +1051,9 @@ async function fetchRates(force) {
       const json = await res.json();
       const usd = json && json.usd;
       if (usd && usd.idr) {
-        data.rates = { perUsd: { idr: usd.idr, khr: usd.khr || null, thb: usd.thb || null, lkr: usd.lkr || null }, fetchedAt: now };
+        const perUsd = { idr: usd.idr };
+        FX_CODES.forEach(c => { if (c !== 'usd') perUsd[c] = usd[c] || null; });
+        data.rates = { perUsd, fetchedAt: now, codes: FX_CODES.join(',') };
         saveData(data);
         return data.rates;
       }
@@ -1089,6 +1108,10 @@ function renderRateInfo() {
     const idrPerLkr = idrPerUsd / data.rates.perUsd.lkr;
     rows += `<div class="rate-line"><span>1 Rupee SL (LKR)</span><span>${fmtIDR(Math.round(idrPerLkr))}</span></div>`;
   }
+  if (data.rates.perUsd.myr) {
+    const idrPerMyr = idrPerUsd / data.rates.perUsd.myr;
+    rows += `<div class="rate-line"><span>1 Ringgit (MYR)</span><span>${fmtIDR(Math.round(idrPerMyr))}</span></div>`;
+  }
   rows += `<p class="rate-updated">Update terakhir: ${new Date(data.rates.fetchedAt).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</p>`;
   el.innerHTML = rows;
 }
@@ -1100,6 +1123,7 @@ function fxCurrLabel(curr) {
   if (curr==='khr') return 'Jumlah (Riel / KHR)';
   if (curr==='thb') return 'Jumlah (Baht / THB)';
   if (curr==='lkr') return 'Jumlah (Rupee SL / LKR)';
+  if (curr==='myr') return 'Jumlah (Ringgit / MYR)';
   return 'Jumlah';
 }
 
