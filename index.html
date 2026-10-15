@@ -165,7 +165,7 @@ html.dark .fx-chip .fx-code { color:var(--sky); }
 .hero .fx-chip .fx-code { color:#fff; }
 
 /* ============ PILIH MATA UANG (BUDGET) ============ */
-.curr-pick { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; margin-bottom:16px; }
+.curr-pick { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:16px; }
 .curr-opt { padding:10px 2px; border-radius:12px; border:1px solid var(--border); font-size:12px;
   font-weight:700; color:var(--sub); text-align:center; transition:all .15s; white-space:nowrap; }
 .curr-opt.on { border-color:var(--sky); background:rgba(56,189,248,.10); color:var(--sky-deep); }
@@ -324,6 +324,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
       <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
+      <button type="button" class="curr-opt" data-curr="sgd">SGD</button>
     </div>
     <label class="flabel" id="bankAmountLabel">Saldo (Rp)</label>
     <input class="finput big" id="bankAmountInput" inputmode="numeric" placeholder="0">
@@ -350,6 +351,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
       <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
+      <button type="button" class="curr-opt" data-curr="sgd">SGD</button>
     </div>
 
     <label class="flabel" id="budgetAmountLabel">Jumlah (Rp)</label>
@@ -380,6 +382,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
       <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
+      <button type="button" class="curr-opt" data-curr="sgd">SGD</button>
     </div>
     <label class="flabel" id="fxAmountLabel">Jumlah (Rp)</label>
     <input class="finput" id="fxAmount" inputmode="numeric" placeholder="Contoh: 100.000">
@@ -433,6 +436,7 @@ html.dark .cat-opt.on { color:var(--sky); }
       <button type="button" class="curr-opt" data-curr="thb">Baht</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
       <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
+      <button type="button" class="curr-opt" data-curr="sgd">SGD</button>
     </div>
     <label class="flabel" id="fAmountLabel" for="fAmount">Jumlah (Rp)</label>
     <input class="finput big" id="fAmount" inputmode="numeric" placeholder="25.000" autocomplete="off">
@@ -767,6 +771,7 @@ function budgetCurrLabel(curr) {
   if (curr==='thb') return 'Jumlah (Baht / THB)';
   if (curr==='lkr') return 'Jumlah (Rupee SL / LKR)';
   if (curr==='myr') return 'Jumlah (Ringgit / MYR)';
+  if (curr==='sgd') return 'Jumlah (Dolar SG / SGD)';
   return 'Jumlah';
 }
 
@@ -939,8 +944,9 @@ const FX_META = {
   thb: { label: 'Baht Thailand', short: 'Baht',  code: 'THB', fmt: n => fmtTHB(n), fmtCompact: n => fmtTHB(n,true) },
   lkr: { label: 'Rupee Sri Lanka', short: 'Rupee SL', code: 'LKR', fmt: n => fmtLKR(n), fmtCompact: n => fmtLKR(n,true) },
   myr: { label: 'Ringgit Malaysia', short: 'Ringgit', code: 'MYR', fmt: n => fmtMYR(n), fmtCompact: n => fmtMYR(n,true) },
+  sgd: { label: 'Dolar Singapura', short: 'SGD', code: 'SGD', fmt: n => fmtSGD(n), fmtCompact: n => fmtSGD(n,true) },
 };
-const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb','lkr','myr']
+const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb','lkr','myr','sgd']
 
 // Hanya menyingkat pada skala jutaan (X,Xjt) — di bawah itu tampilkan angka penuh
 // supaya tidak ada pembulatan yang menyesatkan (mis. USD kecil dibulatkan ke ribuan terdekat).
@@ -984,6 +990,15 @@ function fmtMYR(n, compact) {
     return 'RM '+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
   }
   return 'RM ' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+}
+// Prefix "S$" (bukan "$") supaya Dolar Singapura tidak tertukar dengan Dolar AS ($) di chip/daftar.
+function fmtSGD(n, compact) {
+  if (n===null || isNaN(n)) return '-';
+  if (compact) {
+    if (Math.abs(n)>=1e6) return 'S$'+shortenMillions(n);
+    return 'S$'+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
+  }
+  return 'S$' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 }
 
 // Ambil kurs "per 1 USD" untuk kode tertentu. USD sendiri selalu 1 (tidak disimpan di perUsd).
@@ -1112,6 +1127,10 @@ function renderRateInfo() {
     const idrPerMyr = idrPerUsd / data.rates.perUsd.myr;
     rows += `<div class="rate-line"><span>1 Ringgit (MYR)</span><span>${fmtIDR(Math.round(idrPerMyr))}</span></div>`;
   }
+  if (data.rates.perUsd.sgd) {
+    const idrPerSgd = idrPerUsd / data.rates.perUsd.sgd;
+    rows += `<div class="rate-line"><span>1 Dolar SG (SGD)</span><span>${fmtIDR(Math.round(idrPerSgd))}</span></div>`;
+  }
   rows += `<p class="rate-updated">Update terakhir: ${new Date(data.rates.fetchedAt).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</p>`;
   el.innerHTML = rows;
 }
@@ -1124,6 +1143,7 @@ function fxCurrLabel(curr) {
   if (curr==='thb') return 'Jumlah (Baht / THB)';
   if (curr==='lkr') return 'Jumlah (Rupee SL / LKR)';
   if (curr==='myr') return 'Jumlah (Ringgit / MYR)';
+  if (curr==='sgd') return 'Jumlah (Dolar SG / SGD)';
   return 'Jumlah';
 }
 
