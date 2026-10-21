@@ -108,7 +108,7 @@ html.dark .tabs button.on { color:var(--sky); }
 .cat-head .name { font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .cat-head .val { font-weight:700; white-space:nowrap; flex-shrink:0; }
 .cat-head .pct { font-size:11px; color:var(--subtle); font-weight:400; margin-left:5px; }
-.cat-row .fx-mini { justify-content:flex-end; margin:-1px 0 6px; }
+.cat-row .fx-mini { margin:-1px 0 8px; }
 .track { height:8px; border-radius:99px; background:var(--track); overflow:hidden; }
 .fill { height:100%; border-radius:99px; transition:width .5s; }
 
@@ -117,7 +117,7 @@ html.dark .tabs button.on { color:var(--sky); }
 .day-head { padding:10px 16px; font-size:11.5px; font-weight:600; color:var(--sub); background:var(--hover); }
 .day-head-main { display:flex; justify-content:space-between; align-items:center; gap:10px; }
 .day-head .tot { color:var(--text); white-space:nowrap; flex-shrink:0; }
-.day-head .fx-mini { justify-content:flex-end; margin-top:4px; }
+.day-head .fx-mini { margin-top:6px; }
 .tx { padding:12px 16px; border-top:1px solid var(--border); }
 .tx-main { display:flex; align-items:center; gap:12px; }
 .tx .ico { width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center;
@@ -128,7 +128,7 @@ html.dark .tabs button.on { color:var(--sky); }
 .tx .amt { font-size:13.5px; font-weight:700; white-space:nowrap; flex-shrink:0; }
 .tx .del { width:32px; height:32px; border-radius:10px; font-size:14px; color:var(--rose); opacity:.55; flex-shrink:0; }
 .tx .del:active { background:rgba(251,113,133,.12); opacity:1; }
-.tx .fx-mini { justify-content:flex-end; margin:6px 0 0 48px; }
+.tx .fx-mini { margin:8px 0 0 48px; }
 
 /* ============ BUDGET ============ */
 .b-card { border:1px solid var(--border); background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px; }
@@ -156,16 +156,38 @@ html.dark .tabs button.on { color:var(--sky); }
 .fx-refresh { width:100%; padding:11px 0; border-radius:14px; font-size:12.5px; font-weight:600;
   background:var(--chip); color:var(--text); margin:14px 0 18px; transition:opacity .2s; }
 .fx-refresh:disabled { opacity:.5; }
-.fx-mini { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
-.fx-chip { font-size:10px; font-weight:600; color:var(--sub); background:var(--chip); border-radius:6px;
-  padding:2px 6px; white-space:nowrap; line-height:1.5; }
+/* Baris chip konversi di daftar (kategori, riwayat, budget, bank):
+   SATU baris yang bisa digeser ke samping, ujung kanan memudar sebagai petunjuk masih ada mata uang lain.
+   Dengan 9 mata uang, versi "membungkus ke bawah" membuat tiap item jadi 3-5 baris dan berantakan. */
+.fx-mini { display:flex; flex-wrap:nowrap; gap:4px; margin-top:6px; overflow-x:auto; padding-right:28px;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch;
+  -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);
+          mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent); }
+.fx-mini::-webkit-scrollbar { display:none; }
+.b-card .fx-mini { margin-top:12px; }
+.fx-chip { flex:0 0 auto; font-size:10px; font-weight:600; color:var(--sub); background:var(--chip); border-radius:6px;
+  padding:3px 7px; white-space:nowrap; line-height:1.5; }
 .fx-chip .fx-code { color:var(--sky-deep); font-weight:800; letter-spacing:.02em; }
 html.dark .fx-chip .fx-code { color:var(--sky); }
-.hero .fx-chip { background:rgba(255,255,255,.16); color:#f0f9ff; font-size:11px; padding:3px 8px; }
-.hero .fx-chip .fx-code { color:#fff; }
+
+/* Konversi total di kartu hero: grid 2 kolom yang rata (kode kiri, nilai kanan), bukan chip acak */
+.fx-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; position:relative; z-index:1; }
+.fx-cell { display:flex; flex-direction:column; gap:1px; background:rgba(255,255,255,.14); border-radius:10px;
+  padding:7px 11px 8px; min-width:0; }
+.fx-cell .c-code { font-size:10px; font-weight:800; letter-spacing:.08em; color:rgba(255,255,255,.78); }
+.fx-cell .c-val { font-size:clamp(11px,3.6vw,13px); font-weight:700; color:#fff; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.fx-grid > .fx-cell:last-child:nth-child(odd) { grid-column:1/-1; }
+.fx-caption { position:relative; z-index:1; font-size:11px; font-weight:600; color:rgba(255,255,255,.85); margin:14px 0 8px; }
+
+/* Hasil konversi & daftar kurs di modal: kartu kecil 2 kolom (label di atas, nilai di bawah) */
+.conv-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:4px; }
+.conv-cell { display:flex; flex-direction:column; gap:2px; min-width:0; background:var(--chip); border-radius:12px; padding:9px 12px; }
+.conv-cell .cv-label { font-size:11px; font-weight:500; color:var(--sub); }
+.conv-cell .cv-val { font-size:clamp(11.5px,3.7vw,13.5px); font-weight:700; color:var(--text); overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+.conv-grid > .conv-cell:last-child:nth-child(odd) { grid-column:1/-1; }
 
 /* ============ PILIH MATA UANG (BUDGET) ============ */
-.curr-pick { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:16px; }
+.curr-pick { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:16px; }
 .curr-opt { padding:10px 2px; border-radius:12px; border:1px solid var(--border); font-size:12px;
   font-weight:700; color:var(--sub); text-align:center; transition:all .15s; white-space:nowrap; }
 .curr-opt.on { border-color:var(--sky); background:rgba(56,189,248,.10); color:var(--sky-deep); }
@@ -242,7 +264,7 @@ html.dark .cat-opt.on { color:var(--sky); }
     <p class="amount" id="totalMonth">Rp 0</p>
     <div class="stats" id="statsRow"></div>
     <div class="fx-divider" id="fxDivider" style="display:none"></div>
-    <div class="stats" id="fxStats" style="display:none;gap:6px"></div>
+    <div class="fx-grid" id="fxStats" style="display:none"></div>
     <div class="bwrap" id="budgetBarWrap" style="display:none">
       <div class="brow"><span id="budgetBarLabel"></span><span id="budgetBarPct"></span></div>
       <div class="btrack"><div class="bfill" id="budgetBarFill" style="width:0%"></div></div>
@@ -283,7 +305,8 @@ html.dark .cat-opt.on { color:var(--sky); }
       <p class="label" id="netBalanceLabel">Sisa Saldo Bersih</p>
       <p class="amount" id="netBalanceAmount">Rp 0</p>
       <div class="stats" id="netBalanceStats"></div>
-      <div class="stats" id="saldoFxStats" style="display:none;gap:6px"></div>
+      <p class="fx-caption" id="saldoFxCaption" style="display:none">Saldo bank dalam mata uang lain</p>
+      <div class="fx-grid" id="saldoFxStats" style="display:none"></div>
     </div>
 
     <section class="card">
@@ -318,13 +341,16 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <label class="flabel">Saldo dalam mata uang</label>
     <div class="curr-pick" id="bankCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt on" data-curr="idr">IDR</button>
       <button type="button" class="curr-opt" data-curr="usd">USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
-      <button type="button" class="curr-opt" data-curr="thb">Baht</button>
+      <button type="button" class="curr-opt" data-curr="khr">KHR</button>
+      <button type="button" class="curr-opt" data-curr="thb">THB</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
-      <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
+      <button type="button" class="curr-opt" data-curr="myr">MYR</button>
       <button type="button" class="curr-opt" data-curr="sgd">SGD</button>
+      <button type="button" class="curr-opt" data-curr="twd">TWD</button>
+      <button type="button" class="curr-opt" data-curr="hkd">HKD</button>
+      <button type="button" class="curr-opt" data-curr="vnd">VND</button>
     </div>
     <label class="flabel" id="bankAmountLabel">Saldo (Rp)</label>
     <input class="finput big" id="bankAmountInput" inputmode="numeric" placeholder="0">
@@ -345,13 +371,16 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <label class="flabel">Masukkan dalam mata uang</label>
     <div class="curr-pick" id="budgetCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt on" data-curr="idr">IDR</button>
       <button type="button" class="curr-opt" data-curr="usd">USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
-      <button type="button" class="curr-opt" data-curr="thb">Baht</button>
+      <button type="button" class="curr-opt" data-curr="khr">KHR</button>
+      <button type="button" class="curr-opt" data-curr="thb">THB</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
-      <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
+      <button type="button" class="curr-opt" data-curr="myr">MYR</button>
       <button type="button" class="curr-opt" data-curr="sgd">SGD</button>
+      <button type="button" class="curr-opt" data-curr="twd">TWD</button>
+      <button type="button" class="curr-opt" data-curr="hkd">HKD</button>
+      <button type="button" class="curr-opt" data-curr="vnd">VND</button>
     </div>
 
     <label class="flabel" id="budgetAmountLabel">Jumlah (Rp)</label>
@@ -376,13 +405,16 @@ html.dark .cat-opt.on { color:var(--sky); }
 
     <label class="flabel">Konversi cepat</label>
     <div class="curr-pick" id="fxCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt on" data-curr="idr">IDR</button>
       <button type="button" class="curr-opt" data-curr="usd">USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
-      <button type="button" class="curr-opt" data-curr="thb">Baht</button>
+      <button type="button" class="curr-opt" data-curr="khr">KHR</button>
+      <button type="button" class="curr-opt" data-curr="thb">THB</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
-      <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
+      <button type="button" class="curr-opt" data-curr="myr">MYR</button>
       <button type="button" class="curr-opt" data-curr="sgd">SGD</button>
+      <button type="button" class="curr-opt" data-curr="twd">TWD</button>
+      <button type="button" class="curr-opt" data-curr="hkd">HKD</button>
+      <button type="button" class="curr-opt" data-curr="vnd">VND</button>
     </div>
     <label class="flabel" id="fxAmountLabel">Jumlah (Rp)</label>
     <input class="finput" id="fxAmount" inputmode="numeric" placeholder="Contoh: 100.000">
@@ -430,13 +462,16 @@ html.dark .cat-opt.on { color:var(--sky); }
     </div>
     <label class="flabel">Masukkan dalam mata uang</label>
     <div class="curr-pick" id="expenseCurrPick">
-      <button type="button" class="curr-opt on" data-curr="idr">Rupiah</button>
+      <button type="button" class="curr-opt on" data-curr="idr">IDR</button>
       <button type="button" class="curr-opt" data-curr="usd">USD</button>
-      <button type="button" class="curr-opt" data-curr="khr">Riel</button>
-      <button type="button" class="curr-opt" data-curr="thb">Baht</button>
+      <button type="button" class="curr-opt" data-curr="khr">KHR</button>
+      <button type="button" class="curr-opt" data-curr="thb">THB</button>
       <button type="button" class="curr-opt" data-curr="lkr">LKR</button>
-      <button type="button" class="curr-opt" data-curr="myr">Ringgit</button>
+      <button type="button" class="curr-opt" data-curr="myr">MYR</button>
       <button type="button" class="curr-opt" data-curr="sgd">SGD</button>
+      <button type="button" class="curr-opt" data-curr="twd">TWD</button>
+      <button type="button" class="curr-opt" data-curr="hkd">HKD</button>
+      <button type="button" class="curr-opt" data-curr="vnd">VND</button>
     </div>
     <label class="flabel" id="fAmountLabel" for="fAmount">Jumlah (Rp)</label>
     <input class="finput big" id="fAmount" inputmode="numeric" placeholder="25.000" autocomplete="off">
@@ -743,10 +778,9 @@ function renderBudget(exp) {
         <div class="info">
           <p class="name">${c.label}</p>
           <p class="sub">${limit>0?`${fmtIDR(spent)} dari ${fmtIDR(limit)}`:`Terpakai ${fmtIDR(spent)} · belum ada budget`}</p>
-          ${fxLine(spent)}
         </div>
         <button class="b-edit" onclick="editBudget('${c.id}')">✏️ ${limit>0?'Ubah':'Atur'}</button>
-      </div>${bar}
+      </div>${fxLine(spent)}${bar}
     </section>`;
   }).join('');
 }
@@ -766,13 +800,7 @@ let budgetEditCurr = 'idr';
 // Dipakai bersama oleh modal Atur Budget dan modal Catat Pengeluaran
 function budgetCurrLabel(curr) {
   if (curr==='idr') return 'Jumlah (Rp)';
-  if (curr==='usd') return 'Jumlah (USD)';
-  if (curr==='khr') return 'Jumlah (Riel / KHR)';
-  if (curr==='thb') return 'Jumlah (Baht / THB)';
-  if (curr==='lkr') return 'Jumlah (Rupee SL / LKR)';
-  if (curr==='myr') return 'Jumlah (Ringgit / MYR)';
-  if (curr==='sgd') return 'Jumlah (Dolar SG / SGD)';
-  return 'Jumlah';
+  return FX_META[curr] ? FX_META[curr].inputLabel : 'Jumlah';
 }
 
 // Konversi nilai input (sesuai mata uang terpilih) menjadi Rupiah untuk disimpan.
@@ -937,16 +965,25 @@ const RATE_MAX_AGE = 24 * 3600 * 1000; // maksimal 1x sehari
 // Metadata semua mata uang asing yang didukung. Tambah entri di sini untuk menambah mata uang baru.
 // Catatan: sengaja TIDAK memakai emoji bendera negara — banyak Android (termasuk beberapa merek/versi ColorOS,
 // mis. Oppo) tidak mendukung rendering emoji bendera tertentu (mis. bendera Kamboja) dan malah menampilkan huruf mentah "KH".
-// Kode teks (USD/KHR/THB) dijamin tampil identik di semua perangkat karena hanya huruf biasa, bukan emoji.
+// Kode teks (USD/KHR/THB/...) dijamin tampil identik di semua perangkat karena hanya huruf biasa, bukan emoji.
+//
+// Cara menambah mata uang baru: (1) tambah satu entri di bawah, (2) tambah fungsi fmtXXX,
+// (3) tambah satu <button class="curr-opt" data-curr="xxx"> di tiap pemilih mata uang (4 modal).
+// Sisanya (kurs, chip, daftar konversi, label input, auto-refetch kurs) otomatis mengikuti FX_META.
+//   inputLabel : label kolom jumlah saat mata uang ini dipilih
+//   rateName   : nama di daftar kurs (modal 🌐); rateUnit : satuan kurs (mis. 1.000 untuk Riel & Dong yang nilainya kecil)
 const FX_META = {
-  usd: { label: 'Dolar AS',      short: 'USD',   code: 'USD', fmt: n => fmtUSD(n), fmtCompact: n => fmtUSD(n,true) },
-  khr: { label: 'Riel Kamboja',  short: 'Riel',  code: 'KHR', fmt: n => fmtKHR(n), fmtCompact: n => fmtKHR(n,true) },
-  thb: { label: 'Baht Thailand', short: 'Baht',  code: 'THB', fmt: n => fmtTHB(n), fmtCompact: n => fmtTHB(n,true) },
-  lkr: { label: 'Rupee Sri Lanka', short: 'Rupee SL', code: 'LKR', fmt: n => fmtLKR(n), fmtCompact: n => fmtLKR(n,true) },
-  myr: { label: 'Ringgit Malaysia', short: 'Ringgit', code: 'MYR', fmt: n => fmtMYR(n), fmtCompact: n => fmtMYR(n,true) },
-  sgd: { label: 'Dolar Singapura', short: 'SGD', code: 'SGD', fmt: n => fmtSGD(n), fmtCompact: n => fmtSGD(n,true) },
+  usd: { label: 'Dolar AS',         code: 'USD', inputLabel: 'Jumlah (USD)',                rateName: 'USD',          fmt: n => fmtUSD(n), fmtCompact: n => fmtUSD(n,true) },
+  khr: { label: 'Riel Kamboja',     code: 'KHR', inputLabel: 'Jumlah (Riel / KHR)',         rateName: 'Riel',         rateUnit: 1000, fmt: n => fmtKHR(n), fmtCompact: n => fmtKHR(n,true) },
+  thb: { label: 'Baht Thailand',    code: 'THB', inputLabel: 'Jumlah (Baht / THB)',         rateName: 'Baht',         fmt: n => fmtTHB(n), fmtCompact: n => fmtTHB(n,true) },
+  lkr: { label: 'Rupee Sri Lanka',  code: 'LKR', inputLabel: 'Jumlah (Rupee SL / LKR)',     rateName: 'Rupee SL',     fmt: n => fmtLKR(n), fmtCompact: n => fmtLKR(n,true) },
+  myr: { label: 'Ringgit Malaysia', code: 'MYR', inputLabel: 'Jumlah (Ringgit / MYR)',      rateName: 'Ringgit',      fmt: n => fmtMYR(n), fmtCompact: n => fmtMYR(n,true) },
+  sgd: { label: 'Dolar Singapura',  code: 'SGD', inputLabel: 'Jumlah (Dolar SG / SGD)',     rateName: 'Dolar SG',     fmt: n => fmtSGD(n), fmtCompact: n => fmtSGD(n,true) },
+  twd: { label: 'Dolar Taiwan',     code: 'TWD', inputLabel: 'Jumlah (Dolar Taiwan / TWD)', rateName: 'Dolar Taiwan', fmt: n => fmtTWD(n), fmtCompact: n => fmtTWD(n,true) },
+  hkd: { label: 'Dolar Hong Kong',  code: 'HKD', inputLabel: 'Jumlah (Dolar HK / HKD)',     rateName: 'Dolar HK',     fmt: n => fmtHKD(n), fmtCompact: n => fmtHKD(n,true) },
+  vnd: { label: 'Dong Vietnam',     code: 'VND', inputLabel: 'Jumlah (Dong / VND)',         rateName: 'Dong',         rateUnit: 1000, fmt: n => fmtVND(n), fmtCompact: n => fmtVND(n,true) },
 };
-const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb','lkr','myr','sgd']
+const FX_CODES = Object.keys(FX_META); // ['usd','khr','thb','lkr','myr','sgd','twd','hkd','vnd']
 
 // Hanya menyingkat pada skala jutaan (X,Xjt) — di bawah itu tampilkan angka penuh
 // supaya tidak ada pembulatan yang menyesatkan (mis. USD kecil dibulatkan ke ribuan terdekat).
@@ -1000,6 +1037,29 @@ function fmtSGD(n, compact) {
   }
   return 'S$' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
 }
+// Prefix "NT$" dan "HK$" supaya dolar Taiwan / Hong Kong tidak tertukar dengan USD ($) maupun S$.
+function fmtTWD(n, compact) {
+  if (n===null || isNaN(n)) return '-';
+  if (compact) {
+    if (Math.abs(n)>=1e6) return 'NT$'+shortenMillions(n);
+    return 'NT$'+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
+  }
+  return 'NT$' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+}
+function fmtHKD(n, compact) {
+  if (n===null || isNaN(n)) return '-';
+  if (compact) {
+    if (Math.abs(n)>=1e6) return 'HK$'+shortenMillions(n);
+    return 'HK$'+new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(n);
+  }
+  return 'HK$' + new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+}
+// Dong bernilai kecil (±26.000 per USD) — tanpa desimal, simbol ₫ di belakang (seperti penulisan di Vietnam & seperti Riel).
+function fmtVND(n, compact) {
+  if (n===null || isNaN(n)) return '-';
+  if (compact && Math.abs(n)>=1e6) return shortenMillions(n)+' ₫';
+  return new Intl.NumberFormat('id-ID',{maximumFractionDigits:0}).format(Math.round(n)) + ' ₫';
+}
 
 // Ambil kurs "per 1 USD" untuk kode tertentu. USD sendiri selalu 1 (tidak disimpan di perUsd).
 function getPerUsdRate(code) {
@@ -1039,14 +1099,17 @@ function convertFromIDR(idr, curr) {
 
 // Menampilkan daftar konversi ke SEMUA mata uang LAINNYA (selain yang sedang aktif/excludeCurr).
 // Dipakai di modal Konversi Cepat maupun modal Atur Budget agar konsisten.
+function convCell(label, value) {
+  return `<div class="conv-cell"><span class="cv-label">${label}</span><span class="cv-val">${value}</span></div>`;
+}
 function renderConversionRows(idr, excludeCurr) {
-  const rows = [];
-  if (excludeCurr!=='idr') rows.push(`<div class="rate-line"><span>≈ Rupiah</span><span>${fmtIDR(Math.round(idr))}</span></div>`);
+  const cells = [];
+  if (excludeCurr!=='idr') cells.push(convCell('≈ Rupiah', fmtIDR(Math.round(idr))));
   FX_CODES.forEach(code=>{
     if (excludeCurr===code) return;
-    rows.push(`<div class="rate-line"><span>≈ ${FX_META[code].label}</span><span>${FX_META[code].fmt(idrToForeign(idr, code))}</span></div>`);
+    cells.push(convCell('≈ ' + FX_META[code].label, FX_META[code].fmt(idrToForeign(idr, code))));
   });
-  return rows.join('');
+  return `<div class="conv-grid">${cells.join('')}</div>`;
 }
 
 async function fetchRates(force) {
@@ -1087,10 +1150,15 @@ function updateFxDisplay(totalIdr) {
     divider.style.display='none';
     return;
   }
-  el.style.display='flex';
+  el.style.display='grid';
   divider.style.display='block';
-  el.innerHTML = FX_CODES.map(code =>
-    `<span class="fx-chip"><b class="fx-code">${FX_META[code].code}</b> ${FX_META[code].fmtCompact(idrToForeign(totalIdr, code))}</span>`
+  el.innerHTML = fxGridHTML(totalIdr);
+}
+
+// Tile konversi (kode di atas, nilai di bawah) ke semua mata uang asing — dipakai di kartu hero (total & saldo)
+function fxGridHTML(idrAmount) {
+  return FX_CODES.map(code =>
+    `<div class="fx-cell"><span class="c-code">${FX_META[code].code}</span><span class="c-val">${FX_META[code].fmtCompact(idrToForeign(idrAmount, code))}</span></div>`
   ).join('');
 }
 
@@ -1110,42 +1178,24 @@ function renderRateInfo() {
     return;
   }
   const idrPerUsd = data.rates.perUsd.idr;
-  let rows = `<div class="rate-line"><span>1 USD</span><span>${fmtIDR(Math.round(idrPerUsd))}</span></div>`;
-  if (data.rates.perUsd.khr) {
-    const idrPerKhr = idrPerUsd / data.rates.perUsd.khr;
-    rows += `<div class="rate-line"><span>1.000 Riel (KHR)</span><span>${fmtIDR(Math.round(idrPerKhr*1000))}</span></div>`;
-  }
-  if (data.rates.perUsd.thb) {
-    const idrPerThb = idrPerUsd / data.rates.perUsd.thb;
-    rows += `<div class="rate-line"><span>1 Baht (THB)</span><span>${fmtIDR(Math.round(idrPerThb))}</span></div>`;
-  }
-  if (data.rates.perUsd.lkr) {
-    const idrPerLkr = idrPerUsd / data.rates.perUsd.lkr;
-    rows += `<div class="rate-line"><span>1 Rupee SL (LKR)</span><span>${fmtIDR(Math.round(idrPerLkr))}</span></div>`;
-  }
-  if (data.rates.perUsd.myr) {
-    const idrPerMyr = idrPerUsd / data.rates.perUsd.myr;
-    rows += `<div class="rate-line"><span>1 Ringgit (MYR)</span><span>${fmtIDR(Math.round(idrPerMyr))}</span></div>`;
-  }
-  if (data.rates.perUsd.sgd) {
-    const idrPerSgd = idrPerUsd / data.rates.perUsd.sgd;
-    rows += `<div class="rate-line"><span>1 Dolar SG (SGD)</span><span>${fmtIDR(Math.round(idrPerSgd))}</span></div>`;
-  }
+  const cells = [convCell('1 USD', fmtIDR(Math.round(idrPerUsd)))];
+  // Satu kartu per mata uang asing yang kursnya tersedia — otomatis mengikuti FX_META
+  FX_CODES.forEach(code => {
+    if (code === 'usd') return;
+    const perUsd = data.rates.perUsd[code];
+    if (!perUsd) return;
+    const unit = FX_META[code].rateUnit || 1;
+    const idrPerUnit = idrPerUsd / perUsd * unit;
+    const unitTxt = unit > 1 ? unit.toLocaleString('id-ID') : '1';
+    cells.push(convCell(`${unitTxt} ${FX_META[code].rateName} (${FX_META[code].code})`, fmtIDR(Math.round(idrPerUnit))));
+  });
+  let rows = `<div class="conv-grid">${cells.join('')}</div>`;
   rows += `<p class="rate-updated">Update terakhir: ${new Date(data.rates.fetchedAt).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</p>`;
   el.innerHTML = rows;
 }
 
 let fxCurr = 'idr';
-function fxCurrLabel(curr) {
-  if (curr==='idr') return 'Jumlah (Rp)';
-  if (curr==='usd') return 'Jumlah (USD)';
-  if (curr==='khr') return 'Jumlah (Riel / KHR)';
-  if (curr==='thb') return 'Jumlah (Baht / THB)';
-  if (curr==='lkr') return 'Jumlah (Rupee SL / LKR)';
-  if (curr==='myr') return 'Jumlah (Ringgit / MYR)';
-  if (curr==='sgd') return 'Jumlah (Dolar SG / SGD)';
-  return 'Jumlah';
-}
+function fxCurrLabel(curr) { return budgetCurrLabel(curr); }
 
 function updateFxResult() {
   const raw = parseInt($('fxAmount').value.replace(/\D/g,''),10) || 0;
@@ -1264,10 +1314,10 @@ function renderBankList(mk) {
           <div class="info">
             <p class="name">${esc(b.name)}</p>
             <p class="sub">${fmtIDR(exact)}</p>
-            ${fxLine(exact)}
           </div>
           <button class="b-edit" onclick="editBank('${b.id}')">✏️ Ubah</button>
         </div>
+        ${fxLine(exact)}
       </section>`;
     }
     // Belum ada catatan utk bulan ini — tampilkan carry-forward dari bulan terakhir yang tercatat + tandai
@@ -1302,6 +1352,7 @@ function renderSaldoTab(totalExpenseThisMonth) {
       `<span>⚠️ ${banksNeedingUpdate.length} rekening (${names}) belum diperbarui untuk ${monthLabel(mk)}. Perbarui dulu di "Rekening Bank" di bawah untuk melihat saldo bersih bulan ini.</span>`;
     $('saldoFxStats').style.display = 'none';
     $('saldoFxStats').innerHTML = '';
+    $('saldoFxCaption').style.display = 'none';
   } else {
     heroEl.classList.remove('needs-update');
     $('netBalanceLabel').textContent = 'Sisa Saldo Bersih';
@@ -1315,11 +1366,10 @@ function renderSaldoTab(totalExpenseThisMonth) {
 
     const fxEl = $('saldoFxStats');
     if (data.rates && totalBank>0) {
-      fxEl.style.display='flex';
-      fxEl.innerHTML = FX_CODES.map(code =>
-        `<span class="fx-chip"><b class="fx-code">${FX_META[code].code}</b> ${FX_META[code].fmtCompact(idrToForeign(totalBank, code))}</span>`
-      ).join('');
-    } else { fxEl.style.display='none'; fxEl.innerHTML=''; }
+      fxEl.style.display='grid';
+      fxEl.innerHTML = fxGridHTML(totalBank);
+      $('saldoFxCaption').style.display='block';
+    } else { fxEl.style.display='none'; fxEl.innerHTML=''; $('saldoFxCaption').style.display='none'; }
   }
 
   // Ringkasan budget: total limit yang sudah diatur vs total pengeluaran bulan ini
