@@ -1459,11 +1459,29 @@ function streakInfo() {
   if (!all.length) return { current:0, best:0, started:false };
   const first = all[0];
   const wantDays = new Set(data.expenses.filter(e=>tierOf(e.category)==='want').map(e=>e.date));
+  const adaCatatan = new Set(all);
+  const hariIni = todayStr();
+
+  // Hari tanpa catatan sama sekali itu ambigu: bisa berarti benar-benar tidak jajan, bisa juga
+  // berarti lupa mencatat. Aplikasi tidak bisa membedakannya, jadi hari sepi hanya dipercaya
+  // kalau dalam 3 hari berikutnya pencatatan berlanjut — tanda kamu memang sedang aktif mencatat.
+  // Tanpa aturan ini, berbulan-bulan sebelum kamu mulai memakai aplikasi ikut terhitung "hemat".
+  const COVER = 3;
+  function tercakup(s) {
+    if (s === hariIni) return true;             // hari ini masih berjalan, selalu dihitung
+    const d = new Date(s + 'T00:00:00');
+    for (let i = 0; i <= COVER; i++) {
+      if (adaCatatan.has(dateStr(d))) return true;
+      d.setDate(d.getDate() + 1);
+    }
+    return false;
+  }
 
   let current = 0;
   const d = new Date(); d.setHours(0,0,0,0);
   while (dateStr(d) >= first) {
-    if (wantDays.has(dateStr(d))) break;
+    const s = dateStr(d);
+    if (wantDays.has(s) || !tercakup(s)) break;
     current++;
     d.setDate(d.getDate()-1);
   }
@@ -1473,7 +1491,9 @@ function streakInfo() {
   const today = new Date(); today.setHours(0,0,0,0);
   let guard = 0;
   while (walk <= today && guard++ < 4000) {
-    if (wantDays.has(dateStr(walk))) run = 0; else { run++; if (run>best) best = run; }
+    const s = dateStr(walk);
+    if (wantDays.has(s) || !tercakup(s)) run = 0;
+    else { run++; if (run>best) best = run; }
     walk.setDate(walk.getDate()+1);
   }
   return { current, best: Math.max(best,current), started:true };
@@ -1537,8 +1557,12 @@ function projectMonthEnd(st) {
   const dim = daysInMonth(year, month);
   const lewat = nowD.getDate();
   const sisaHari = dim - lewat;
-  const out = { total: st.expense, sisaHari, laju: 0, rutin: 0, rincian: '' };
-  if (sisaHari <= 0 || st.expense <= 0) return out;
+  const hariBelanja = new Set(st.exp.map(e => e.date)).size;
+  const out = { total: st.expense, sisaHari, laju: 0, rutin: 0, rincian: '', hariBelanja, cukup: hariBelanja >= 5 };
+  // Di bawah 5 hari belanja, pola harian belum terbentuk: membuang hari terboros bisa
+  // menyisakan nol, sedangkan tidak membuangnya membuat satu tagihan besar terlihat harian.
+  // Dua-duanya salah, jadi lebih jujur tidak memberi angka perkiraan sama sekali.
+  if (sisaHari <= 0 || st.expense <= 0 || !out.cukup) return out;
 
   const perHari = Array(lewat).fill(0);
   st.exp.forEach(e => {
@@ -1581,7 +1605,12 @@ function buildInsights() {
   if (isCurrentMonth() && nowD.getDate() >= 4 && st.expense > 0) {
     const p = projectMonthEnd(st);
     const tb = totalBudget();
-    if (p.sisaHari > 0) {
+    if (p.sisaHari > 0 && !p.cukup) {
+      out.push({ em:'📊', tone:'', tx:
+        `Baru <b>${p.hariBelanja} hari</b> ada pengeluaran bulan ini — belum cukup untuk memperkirakan akhir bulan.`
+        + ` Sejauh ini terpakai <b>${fmtIDR(st.expense)}</b>${tb>0?` dari budget ${fmtIDR(tb)}`:''}.`
+        + `<small>Perkiraan muncul setelah ada pengeluaran di minimal 5 hari berbeda, supaya polanya bisa dibaca.</small>` });
+    } else if (p.sisaHari > 0) {
       const rincian = `<small>${p.rincian}</small>`;
       if (tb > 0 && p.total > tb) {
         out.push({ em:'🚨', tone:'bad', tx:`Dengan pola sekarang, bulan ini diperkirakan tembus <b>${fmtIDR(Math.round(p.total))}</b> — lewat budget ${fmtIDR(Math.round(p.total-tb))}. Rem sedikit mulai sekarang.${rincian}` });
@@ -1746,8 +1775,18 @@ function renderQuickStats(st) {
     $('safeNote').textContent = `Per hari, ${s.days} hari tersisa · sisa ${fmtIDR(Math.round(s.pool))}`;
   }
 
-  const k = streakInfo(), sc = $('streakCard');
-  sc.className = 'qstat' + (k.current>=3 ? ' accent-good' : k.current===0 ? '' : ' accent-brand');
+  // Streak selalu dihitung mundur dari HARI INI, jadi angkanya tidak ada artinya saat
+  // menengok bulan lain. Diredupkan seperti kartu "Aman jajan" supaya tidak membingungkan.
+  const sc = $('streakCard');
+  sc.className = 'qstat';
+  if (!isCurrentMonth()) {
+    $('streakValue').textContent = '—';
+    $('streakNote').textContent = 'Hanya dihitung untuk bulan berjalan';
+    return;
+  }
+  const k = streakInfo();
+  if (k.current >= 3) sc.classList.add('accent-good');
+  else if (k.current > 0) sc.classList.add('accent-brand');
   $('streakValue').textContent = k.current===0 ? 'Mulai lagi' : `${k.current} hari 🔥`;
   $('streakNote').textContent = !k.started
     ? 'Hari tanpa jajan & belanja'
