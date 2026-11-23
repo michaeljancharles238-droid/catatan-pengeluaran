@@ -270,6 +270,8 @@ html.dark .insight { background:var(--surface-3); }
 .insight .em { font-size:17px; line-height:1.3; flex-shrink:0; }
 .insight .tx { font-size:12.5px; line-height:1.55; color:var(--sub); min-width:0; }
 .insight .tx b { color:var(--text); font-weight:700; }
+/* Baris rincian cara menghitung — sengaja dibuat redup agar tidak menyaingi pesan utamanya */
+.insight .tx small { display:block; margin-top:5px; font-size:11px; line-height:1.5; color:var(--subtle); }
 .insight.good { background:var(--good-soft); } .insight.good .tx b { color:var(--good); }
 .insight.warn { background:var(--warn-soft); } .insight.warn .tx b { color:var(--warn); }
 .insight.bad  { background:var(--bad-soft); }  .insight.bad .tx b  { color:var(--bad); }
@@ -1521,6 +1523,50 @@ function emergencyInfo() {
   return { ok:true, saldo, avg, months: saldo/avg, target3: avg*3, target6: avg*6 };
 }
 
+/* Perkiraan total pengeluaran sampai akhir bulan.
+
+   Cara polos "total ÷ tanggal hari ini × jumlah hari" gampang melenceng jauh: satu tagihan
+   besar sekali bayar (sewa rumah, servis motor, bayar sekolah) ikut dianggap mengalir rata
+   tiap hari, padahal uang itu tidak akan keluar lagi bulan ini. Maka:
+     1. hari paling boros dikecualikan dulu saat menghitung laju harian
+        (1 hari untuk tiap 10 hari berjalan, minimal 1),
+     2. sisanya dipakai sebagai laju belanja sehari-hari,
+     3. lalu tagihan rutin yang tanggal tagihnya MASIH akan datang bulan ini ditambahkan kembali.
+   Hasilnya: pengeluaran rutin tetap diperhitungkan, tapi tidak dilipatgandakan. */
+function projectMonthEnd(st) {
+  const dim = daysInMonth(year, month);
+  const lewat = nowD.getDate();
+  const sisaHari = dim - lewat;
+  const out = { total: st.expense, sisaHari, laju: 0, rutin: 0, rincian: '' };
+  if (sisaHari <= 0 || st.expense <= 0) return out;
+
+  const perHari = Array(lewat).fill(0);
+  st.exp.forEach(e => {
+    const d = parseInt(e.date.slice(8,10), 10);
+    if (d >= 1 && d <= lewat) perHari[d-1] += e.amount;
+  });
+
+  const jmlBuang = Math.max(1, Math.floor(lewat / 10));
+  const terboros = perHari.slice().sort((a,b) => b-a).slice(0, jmlBuang);
+  const dibuang = terboros.reduce((s,v) => s+v, 0);
+  out.laju = Math.max((st.expense - dibuang) / lewat, 0);
+
+  // Langganan bulanan yang belum jatuh tempo di sisa bulan ini.
+  // Langganan tahunan dilewati karena aplikasi hanya menyimpan tanggalnya, bukan bulannya.
+  out.rutin = data.subs
+    .filter(s => s.active !== false && (s.cycle || 'monthly') === 'monthly')
+    .reduce((sum, s) => {
+      const d = parseInt(s.day, 10) || 0;
+      return (d > lewat && d <= dim) ? sum + (s.amount || 0) : sum;
+    }, 0);
+
+  out.total = st.expense + out.laju * sisaHari + out.rutin;
+  out.rincian = `Hitungan: terpakai ${fmtIDR(st.expense)} + laju ${fmtIDR(Math.round(out.laju))}/hari × ${sisaHari} hari`
+    + (out.rutin > 0 ? ` + tagihan rutin ${fmtIDR(out.rutin)}` : '')
+    + (dibuang > 0 ? `. ${jmlBuang} hari terboros tidak dihitung sebagai kebiasaan harian.` : '.');
+  return out;
+}
+
 /* Insight otomatis — maksimal 4, diurutkan dari yang paling berguna. */
 function buildInsights() {
   const mk = monthKey(), st = monthStats(mk), out = [];
@@ -1531,17 +1577,19 @@ function buildInsights() {
     return out;
   }
 
-  // 1. Perkiraan akhir bulan bila pola sekarang diteruskan (hanya bulan berjalan)
+  // 1. Perkiraan akhir bulan (hanya bulan berjalan)
   if (isCurrentMonth() && nowD.getDate() >= 4 && st.expense > 0) {
-    const dim = daysInMonth(year,month);
-    const proyeksi = st.expense / nowD.getDate() * dim;
+    const p = projectMonthEnd(st);
     const tb = totalBudget();
-    if (tb > 0 && proyeksi > tb) {
-      out.push({ em:'🚨', tone:'bad', tx:`Dengan pola sekarang, bulan ini diperkirakan tembus <b>${fmtIDR(Math.round(proyeksi))}</b> — lewat budget ${fmtIDR(Math.round(proyeksi-tb))}. Rem sedikit mulai sekarang.` });
-    } else if (tb > 0) {
-      out.push({ em:'✅', tone:'good', tx:`Perkiraan akhir bulan <b>${fmtIDR(Math.round(proyeksi))}</b>, masih di dalam budget ${fmtIDR(tb)}. Pertahankan.` });
-    } else {
-      out.push({ em:'📊', tone:'', tx:`Kalau polanya sama sampai akhir bulan, total jadi sekitar <b>${fmtIDR(Math.round(proyeksi))}</b>.` });
+    if (p.sisaHari > 0) {
+      const rincian = `<small>${p.rincian}</small>`;
+      if (tb > 0 && p.total > tb) {
+        out.push({ em:'🚨', tone:'bad', tx:`Dengan pola sekarang, bulan ini diperkirakan tembus <b>${fmtIDR(Math.round(p.total))}</b> — lewat budget ${fmtIDR(Math.round(p.total-tb))}. Rem sedikit mulai sekarang.${rincian}` });
+      } else if (tb > 0) {
+        out.push({ em:'✅', tone:'good', tx:`Perkiraan akhir bulan <b>${fmtIDR(Math.round(p.total))}</b>, masih di dalam budget ${fmtIDR(tb)}. Pertahankan.${rincian}` });
+      } else {
+        out.push({ em:'📊', tone:'', tx:`Kalau polanya sama sampai akhir bulan, total jadi sekitar <b>${fmtIDR(Math.round(p.total))}</b>.${rincian}` });
+      }
     }
   }
 
@@ -1569,7 +1617,11 @@ function buildInsights() {
   // 4. Langganan — bocor halus
   const sm = subsMonthly();
   if (sm > 0) {
-    out.push({ em:'🎬', tone:'', tx:`Langganan rutinmu <b>${fmtIDR(Math.round(sm))}</b> per bulan — setara <b>${fmtIDR(Math.round(sm*12))}</b> setahun. Cek lagi mana yang masih benar-benar dipakai.` });
+    const porsi = st.income > 0 ? sm/st.income*100 : 0;
+    const berat = porsi >= 40;
+    out.push({ em:'🎬', tone: berat?'warn':'', tx:
+      `Komitmen rutinmu <b>${fmtIDR(Math.round(sm))}</b> per bulan — setara <b>${fmtIDR(Math.round(sm*12))}</b> setahun.`
+      + (berat ? ` Itu <b>${porsi.toFixed(0)}%</b> dari pemasukan, sudah habis sebelum sempat dipakai.` : '') });
   }
 
   // 5. Kategori terbesar
@@ -1936,7 +1988,8 @@ function renderBudgetView(st) {
     if (limit>0) {
       const warna = lewat?'var(--bad)':hampir?'var(--warn)':'var(--brand)';
       const pesan = lewat ? `⚠️ Lewat ${fmtIDR(spent-limit)}`
-                  : hampir ? `Hampir batas (${pct.toFixed(0)}%)`
+                  : pct >= 99.5 ? `Tepat di batas — jatah kategori ini habis`
+                  : hampir ? `Hampir batas (${pct.toFixed(0)}%) · sisa ${fmtIDR(limit-spent)}`
                   : `Sisa ${fmtIDR(limit-spent)} · ${pct.toFixed(0)}% terpakai`;
       bar = `<div class="track" style="margin-top:11px"><div class="fill" style="width:${Math.min(pct,100)}%;background:${warna}"></div></div>
              <p class="msg ${lewat?'over':hampir?'warn':''}">${pesan}</p>`;
@@ -1974,7 +2027,7 @@ function renderSubs() {
   const ringkas = `<section class="lcard" style="background:var(--brand-soft);border-color:transparent">
     <div class="row">
       <div class="body">
-        <div class="t2" style="color:var(--brand-text);font-weight:650">Total bocor halus per bulan</div>
+        <div class="t2" style="color:var(--brand-text);font-weight:650">Total komitmen rutin per bulan</div>
         <div style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin-top:3px" class="num">${fmtIDR(Math.round(total))}</div>
         <div class="t2" style="margin-top:3px">Setara ${fmtIDR(Math.round(total*12))} setahun · ${aktif.length} langganan aktif</div>
       </div>
@@ -1989,6 +2042,9 @@ function renderSubs() {
     let info = s.cycle==='yearly' ? `${fmtIDR(s.amount)}/tahun · ${fmtIDR(Math.round(perBulan))}/bulan` : `${fmtIDR(s.amount)}/bulan`;
     let lencana = '';
     if (mati) lencana = `<span class="badge">Dijeda</span>`;
+    // Hitung mundur hanya untuk langganan bulanan. Untuk yang tahunan aplikasi cuma menyimpan
+    // tanggal, bukan bulannya, jadi hitung mundur apa pun akan menyesatkan.
+    else if (s.cycle === 'yearly') lencana = `<span class="badge brand">Tagihan tahunan</span>`;
     else if (hari !== null) {
       const teks = hari===0 ? 'Jatuh tempo hari ini' : hari===1 ? 'Besok jatuh tempo' : `${hari} hari lagi`;
       lencana = `<span class="badge ${hari<=3?'bad':'brand'}">${teks}</span>`;
