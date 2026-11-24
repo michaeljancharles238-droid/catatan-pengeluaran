@@ -545,7 +545,7 @@ html.dark .qchip { background:var(--surface-3); }
         <h1>Catatan Pengeluaran</h1>
         <div class="brand-sub">
           <p id="greeting">Kelola keuanganmu setiap hari</p>
-          <span class="ver" id="chipVersi">v29</span>
+          <span class="ver" id="chipVersi">v30</span>
         </div>
       </div>
     </div>
@@ -1017,6 +1017,10 @@ html.dark .qchip { background:var(--surface-3); }
         Pulihkan akan <b>menimpa semua data saat ini</b> dengan isi file backup. Kalau sinkron aktif,
         data hasil pulihan ikut terkirim ke perangkat lain.</span></div>
       <div id="slotDarurat"></div>
+      <button class="danger-btn" data-aksi="reset-semua">Mulai dari nol — hapus semua data</button>
+      <p class="hint" style="margin-top:8px;text-align:center">
+        Menghapus isi perangkat ini <b>dan</b> salinannya di cloud. File cadangan diunduh dulu.
+      </p>
     </div>
 
     <!-- ---- Versi aplikasi ---- -->
@@ -2900,7 +2904,7 @@ const FIREBASE_CONFIG = {
   measurementId: "G-C3Q806S63C"
 };
 const SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
-const VERSI = '29';
+const VERSI = '30';
 
 /* Dua dokumen saja. Transaksi dipisah karena isinya yang paling cepat
    membesar; sisanya (budget, rekening, target, langganan) jarang berubah. */
@@ -2935,10 +2939,42 @@ function muatanDok(nama, d) {
     bankBalances: s.bankBalances || {}, goals: s.goals || [], subs: s.subs || [],
   };
 }
+/* Bentuk teks yang urutan kuncinya selalu sama. Firestore boleh mengembalikan
+   kunci dalam urutan berbeda dari yang kita kirim — tanpa ini, data yang isinya
+   sama persis bisa terbaca "beda". */
+function kanon(v) {
+  if (Array.isArray(v)) return '[' + v.map(kanon).join(',') + ']';
+  if (v && typeof v === 'object')
+    return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + kanon(v[k])).join(',') + '}';
+  return JSON.stringify(v === undefined ? null : v);
+}
 /* Sidik isi dokumen. Dipakai untuk tahu apa yang benar-benar berubah, supaya
    ganti tema atau kurs tidak ikut memicu pengiriman. */
-function sidik(nama, d) { return JSON.stringify(muatanDok(nama, d)); }
-function catatTerkirim(d) { DOK.forEach(n => { terakhirKirim[n] = sidik(n, d); }); }
+function sidik(nama, d) { return kanon(muatanDok(nama, d)); }
+/* Sidik isi dokumen versi cloud, dibandingkan dengan ukuran yang sama. */
+function sidikCloud(nama, isi) { return kanon(muatanDok(nama, isi || {})); }
+
+/* Penanda "perangkat ini sudah pernah dirukunkan dengan akun ini", disimpan
+   per akun. Isinya ringkasan pendek dari data yang terakhir diketahui sama
+   dengan cloud — dipakai untuk tahu apakah ada perubahan lokal yang belum
+   terkirim, tanpa menyimpan salinan datanya lagi. */
+function ringkas(s) {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return String(h >>> 0) + ':' + s.length;
+}
+function kunciRukun() { return 'w21-expense-rukun-' + (Sinkron.uid || '?'); }
+function bacaRukun() {
+  if (!Sinkron.uid) return null;
+  try { return JSON.parse(localStorage.getItem(kunciRukun()) || 'null'); } catch (e) { return null; }
+}
+function tulisRukun() {
+  if (!Sinkron.uid) return;
+  const r = {};
+  DOK.forEach(n => { r[n] = ringkas(sidik(n)); });
+  try { localStorage.setItem(kunciRukun(), JSON.stringify(r)); } catch (e) {}
+}
+function catatTerkirim(d) { DOK.forEach(n => { terakhirKirim[n] = sidik(n, d); }); tulisRukun(); }
 function ref(nama) { return Sinkron.akar.collection('pengeluaran').doc(nama); }
 /* Firestore menolak undefined — buang lewat perjalanan JSON. */
 function bersihkan(o) { return JSON.parse(JSON.stringify(o)); }
@@ -3134,7 +3170,30 @@ async function samakanAwal() {
   if (nCloud === 0 && nLokal > 0)      { await dorongSemua(); aktifkanSinkron(); return; }
   if (nLokal === 0)                    { pakaiCloud(cloud);   aktifkanSinkron(); return; }
 
-  // Dua-duanya berisi → tanya dulu, jangan ada yang dihapus diam-diam.
+  // Isinya sudah sama persis → tidak ada yang perlu ditanyakan.
+  if (DOK.every(n => sidikCloud(n, cloud[n]) === sidik(n))) {
+    pakaiCloud(cloud); aktifkanSinkron(); return;
+  }
+
+  // Perangkat ini sudah pernah dirukunkan dengan akun ini, jadi pertanyaannya
+  // sudah pernah dijawab. Jangan tanya lagi setiap kali halaman dibuka.
+  const rukun = bacaRukun();
+  if (rukun) {
+    const adaBelumTerkirim = DOK.some(n => ringkas(sidik(n)) !== rukun[n]);
+    if (adaBelumTerkirim) {
+      // Ada perubahan lokal yang belum sempat terkirim — gabungkan supaya tidak hilang.
+      pakaiGabungan(gabungkan(cloud));
+      await dorongSemua();
+    } else {
+      // Tidak ada perubahan lokal; cloud adalah yang terbaru (termasuk penghapusan).
+      pakaiCloud(cloud);
+    }
+    aktifkanSinkron();
+    return;
+  }
+
+  // Benar-benar pertemuan pertama perangkat ini dengan akun ini DAN isinya beda
+  // → baru bertanya, supaya tidak ada yang dihapus diam-diam.
   simpanDarurat();
   tanyaGabung(cloud, nCloud, nLokal);
 }
@@ -3251,6 +3310,7 @@ function terimaDok(nama, snap) {
   const acuan = sidik(nama);                         // isi cloud, sebelum migrasi
   terapkanJauh();
   terakhirKirim[nama] = acuan;
+  tulisRukun();                                      // perangkat ini kini sama dengan cloud
   tandaiKotor();                                     // kalau migrasi mengubah isi, kirim balik
 }
 /* Simpan ke perangkat, lalu baca lewat loadData() supaya migrasi format lama
@@ -3272,7 +3332,8 @@ async function dorongSemua() {
   // Dokumen akar dipakai bersama aplikasi HPP — tulis field sendiri saja, jangan timpa.
     b.set(Sinkron.akar, { pengeluaranDiubah: Date.now() }, { merge:true });
   await b.commit();
-  DOK.forEach(n => { terakhirKirim[n] = JSON.stringify(isi[n]); kotor[n] = false; });
+  DOK.forEach(n => { terakhirKirim[n] = kanon(isi[n]); kotor[n] = false; });
+  tulisRukun();
 }
 
 async function dorongKeCloud() {
@@ -3289,7 +3350,8 @@ async function dorongKeCloud() {
     // Dokumen akar dipakai bersama aplikasi HPP — tulis field sendiri saja, jangan timpa.
     b.set(Sinkron.akar, { pengeluaranDiubah: Date.now() }, { merge:true });
     await b.commit();
-    kerja.forEach(n => { terakhirKirim[n] = JSON.stringify(isi[n]); });
+    kerja.forEach(n => { terakhirKirim[n] = kanon(isi[n]); });
+    tulisRukun();
     if (Sinkron.status !== 'offline') aturStatus('tersambung');
   } catch (e) {
     // Kembalikan ke daftar kotor supaya dicoba lagi.
@@ -3389,6 +3451,47 @@ function isiDarurat() {
     <button class="mini-btn" data-aksi="unduh-darurat" style="width:100%;margin-top:9px">Download cadangan sebelum sinkron</button>`;
 }
 
+/* Mulai dari nol. Dipakai kalau isi cloud dan perangkat sudah terlanjur kacau
+   dan lebih enak membangun ulang daripada merapikan.
+   Cloud tidak dihapus dokumennya, tapi ditulisi isi kosong — supaya perangkat
+   lain yang sedang terbuka ikut dikosongkan, bukan malah mengirim balik datanya. */
+async function resetSemua() {
+  const n = jumlahTx(data);
+  const pesan = `Hapus SEMUA data?\n\n${n} transaksi di perangkat ini` +
+    (Sinkron.masuk ? ' dan salinannya di cloud' : '') +
+    ` akan dikosongkan, lalu dasbor mulai dari nol.\n\nFile cadangan akan diunduh lebih dulu. Lanjutkan?`;
+  if (!confirm(pesan)) return;
+
+  unduhJson({ app:'catatan-pengeluaran', alasan:'sebelum reset',
+              disimpan:new Date().toISOString(), data },
+            `backup-pengeluaran-sebelum-reset-${todayStr()}.json`);
+
+  clearTimeout(Sinkron.jeda);
+  DOK.forEach(x => { kotor[x] = false; });
+  const tema = data.theme, rates = data.rates;
+  saveData(Object.assign(blankData(), { theme: tema, rates }));
+  data = loadData();
+  try { localStorage.removeItem(KUNCI_DARURAT); } catch (e) {}
+  render();
+  isiDarurat();
+
+  const s = $('importStatus');
+  if (Sinkron.masuk && Sinkron.akar) {
+    try {
+      await dorongSemua();
+      aturStatus('tersambung');
+      if (s) { s.textContent = `✅ Dikosongkan. ${n} transaksi dihapus di perangkat ini dan di cloud.`; s.style.color = 'var(--good)'; }
+    } catch (e) {
+      aturStatus('galat', pesanGalat(e));
+      if (s) { s.textContent = '⚠️ Perangkat ini sudah kosong, tapi cloud gagal dikosongkan: ' + pesanGalat(e); s.style.color = 'var(--warn)'; }
+      return;
+    }
+  } else if (s) {
+    s.textContent = `✅ Dikosongkan. ${n} transaksi dihapus dari perangkat ini.`; s.style.color = 'var(--good)';
+  }
+  tulisRukun();
+}
+
 function unduhJson(obj, nama) {
   const blob = new Blob([JSON.stringify(obj, null, 2)], { type:'application/json' });
   const url = URL.createObjectURL(blob);
@@ -3407,6 +3510,7 @@ document.addEventListener('click', ev => {
   else if (aksi === 'keluar') keluarAkun();
   else if (aksi === 'coba-lagi') mulaiSinkron();
   else if (aksi === 'periksa-versi') periksaPembaruan();
+  else if (aksi === 'reset-semua') resetSemua();
   else if (aksi === 'unduh-darurat') {
     unduhJson(bacaDarurat() || { app:'catatan-pengeluaran', data },
               `backup-pengeluaran-${todayStr()}.json`);
