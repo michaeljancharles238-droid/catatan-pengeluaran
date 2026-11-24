@@ -123,6 +123,29 @@ svg { display:block; flex-shrink:0; }
 }
 .ico-btn:active { background:var(--surface-2); transform:scale(.94); }
 
+/* Baris bawah brand: sapaan (boleh terpotong) + chip versi (tidak pernah menyusut) */
+.brand-sub { display:flex; align-items:center; gap:6px; min-width:0; margin-top:2px; }
+.brand-sub p { margin-top:0; min-width:0; }
+.ver {
+  flex-shrink:0; font-size:9.5px; font-weight:700; letter-spacing:.02em; line-height:1.5;
+  color:var(--subtle); background:var(--surface-2); border:1px solid var(--border);
+  border-radius:6px; padding:1px 5px; font-variant-numeric:tabular-nums;
+}
+.ver.beda { color:var(--warn); background:var(--warn-soft); border-color:transparent; }
+
+/* Layar sempit (mis. 320px): rapatkan sedikit supaya judul "Catatan Pengeluaran"
+   tidak terpotong sementara tiga tombol tetap bisa disentuh. */
+@media (max-width:360px) {
+  .app { padding-left:14px; padding-right:14px; }
+  .topbar { gap:9px; }
+  .brand { gap:8px; }
+  .logo { width:32px; height:32px; border-radius:11px; }
+  .logo svg { width:19px; height:19px; }
+  .brand h1 { font-size:13px; }
+  .topbar-actions { gap:5px; }
+  .ico-btn { width:31px; height:31px; border-radius:10px; }
+}
+
 /* ============ NAVIGASI BULAN ============ */
 .monthbar {
   display:flex; align-items:center; justify-content:space-between;
@@ -389,6 +412,55 @@ select.finput { appearance:none; -webkit-appearance:none; background-image:none;
 .save-btn:disabled { opacity:.4; box-shadow:none; }
 .save-btn.neutral { background:var(--surface-2); color:var(--text); box-shadow:none; }
 .save-btn.good { background:linear-gradient(135deg,#0fa968,#12b981); box-shadow:0 10px 24px rgba(15,169,104,.3); }
+
+/* ============ CATATAN KECIL DI DALAM SHEET ============ */
+.note {
+  display:flex; gap:9px; align-items:flex-start; padding:11px 13px; border-radius:14px;
+  background:var(--surface-2); font-size:11.5px; line-height:1.6; color:var(--sub);
+}
+html.dark .note { background:var(--surface-3); }
+.note b { color:var(--text); font-weight:700; }
+.note .ic { flex-shrink:0; font-size:13px; line-height:1.4; }
+.note.ok { background:var(--good-soft); } .note.ok b { color:var(--good); }
+.note.warn { background:var(--warn-soft); } .note.warn b { color:var(--warn); }
+.note.bad { background:var(--bad-soft); } .note.bad b { color:var(--bad); }
+.note code {
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10.5px;
+  background:rgba(127,127,127,.16); padding:1px 4px; border-radius:5px;
+}
+
+/* ============ PANEL SINKRONISASI ============ */
+.sync-sec { margin-bottom:22px; }
+.sync-sec > .sec-label {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  font-size:11.5px; font-weight:650; color:var(--sub); margin-bottom:9px;
+}
+.akun-baris { display:flex; align-items:center; gap:11px; flex-wrap:wrap; margin-bottom:10px; }
+.akun-baris .kiri { flex:1; min-width:0; }
+.akun-baris .eyebrow {
+  font-size:9.5px; font-weight:700; color:var(--subtle);
+  text-transform:uppercase; letter-spacing:.06em;
+}
+.akun-baris .surel { font-size:13px; font-weight:650; overflow-wrap:anywhere; line-height:1.4; }
+.mini-btn {
+  padding:8px 13px; border-radius:11px; font-size:11.5px; font-weight:650;
+  color:var(--sub); background:var(--surface-2); border:1px solid var(--border); flex-shrink:0;
+}
+.mini-btn:active { transform:scale(.96); }
+.pilih-grid { display:grid; gap:9px; margin-top:13px; }
+.pilih-btn {
+  display:flex; align-items:flex-start; gap:11px; text-align:left; width:100%;
+  padding:13px 14px; border-radius:15px; border:1px solid var(--border);
+  background:var(--surface-2); transition:border-color .15s;
+}
+html.dark .pilih-btn { background:var(--surface-3); }
+.pilih-btn:active { transform:scale(.99); }
+.pilih-btn.utama { border-color:var(--brand); background:var(--brand-soft); }
+.pilih-btn .ic { font-size:17px; line-height:1.3; flex-shrink:0; }
+.pilih-btn > span:last-child { min-width:0; }
+.pilih-btn .jd { display:block; font-size:13px; font-weight:700; color:var(--text); }
+.pilih-btn .ds { display:block; font-size:11px; color:var(--sub); line-height:1.55; margin-top:4px; }
+.pilih-btn.utama .jd { color:var(--brand-text); }
 .danger-btn {
   width:100%; padding:13px 0; border-radius:14px; font-size:12.5px; font-weight:650;
   color:var(--bad); background:transparent; border:1px solid rgba(229,56,79,.32); margin-top:11px;
@@ -471,16 +543,17 @@ html.dark .qchip { background:var(--surface-3); }
       </div>
       <div>
         <h1>Catatan Pengeluaran</h1>
-        <p id="greeting">Kelola keuanganmu setiap hari</p>
+        <div class="brand-sub">
+          <p id="greeting">Kelola keuanganmu setiap hari</p>
+          <span class="ver" id="chipVersi">v29</span>
+        </div>
       </div>
     </div>
     <div class="topbar-actions">
       <button class="ico-btn" id="fxBtn" aria-label="Kurs mata uang">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
       </button>
-      <button class="ico-btn" id="backupBtn" aria-label="Backup dan restore">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v3.5A2.5 2.5 0 0 1 18.5 21h-13A2.5 2.5 0 0 1 3 18.5V15"/><path d="M7.5 10.5 12 15l4.5-4.5M12 3v12"/></svg>
-      </button>
+      <button class="ico-btn" id="backupBtn" aria-label="Data dan sinkronisasi"></button>
       <button class="ico-btn" id="themeBtn" aria-label="Ganti tema"></button>
     </div>
   </header>
@@ -917,31 +990,84 @@ html.dark .qchip { background:var(--surface-3); }
   </div>
 </div>
 
-<!-- ============== MODAL: BACKUP & RESTORE ============== -->
+<!-- ============== MODAL: DATA & SINKRONISASI ============== -->
 <div class="modal" id="backupModal">
   <div class="modal-bg" data-close="backupModal"></div>
   <div class="sheet">
     <div class="grabber"></div>
     <div class="sheet-head">
-      <h2>Backup &amp; Restore</h2>
+      <h2>Data &amp; Sinkronisasi</h2>
       <button class="close" data-close="backupModal" aria-label="Tutup">✕</button>
     </div>
 
-    <p class="hint" style="margin-bottom:18px">
-      Data hanya tersimpan di browser HP ini. Export secara berkala agar tidak hilang saat cache dihapus atau ganti perangkat.
-    </p>
+    <!-- ---- Sinkronisasi antar perangkat ---- -->
+    <div class="sync-sec">
+      <div class="sec-label"><span>Sinkron antar perangkat</span></div>
+      <div id="panelAkun"></div>
+    </div>
 
-    <label class="flabel">Simpan cadangan (Export)</label>
-    <button class="save-btn" id="exportBtn" style="margin-bottom:22px">Download file backup (.json)</button>
+    <!-- ---- Backup berkas ---- -->
+    <div class="sync-sec">
+      <div class="sec-label"><span>Cadangan berkas</span></div>
+      <button class="save-btn" id="exportBtn">Download file backup (.json)</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none">
+      <button class="save-btn neutral" id="importBtn" style="margin-top:9px">Pulihkan dari file backup</button>
+      <p id="importStatus" style="font-size:12px;margin-top:12px;text-align:center;line-height:1.5"></p>
+      <div class="note warn" style="margin-top:12px"><span class="ic">⚠️</span><span>
+        Pulihkan akan <b>menimpa semua data saat ini</b> dengan isi file backup. Kalau sinkron aktif,
+        data hasil pulihan ikut terkirim ke perangkat lain.</span></div>
+      <div id="slotDarurat"></div>
+    </div>
 
-    <label class="flabel">Pulihkan dari cadangan (Import)</label>
-    <input type="file" id="importFile" accept="application/json" style="display:none">
-    <button class="save-btn neutral" id="importBtn">Pilih file backup</button>
-    <p id="importStatus" style="font-size:12px;margin-top:12px;text-align:center;line-height:1.5"></p>
+    <!-- ---- Versi aplikasi ---- -->
+    <div class="sync-sec" style="margin-bottom:4px">
+      <div class="sec-label">
+        <span>Versi aplikasi</span>
+        <span style="font-weight:700;color:var(--text)">v<span id="versiApp"></span></span>
+      </div>
+      <div id="kabarVersi"></div>
+      <div class="note"><span class="ic">📦</span><span>
+        Berkas offline di perangkat ini: <b id="versiCache">memeriksa…</b>.
+        Kalau nomornya beda dengan versi aplikasi, perangkat ini masih memegang berkas lama.</span></div>
+      <button class="mini-btn" data-aksi="periksa-versi" style="width:100%;margin-top:10px">Periksa pembaruan</button>
+      <p id="statusVersi" style="font-size:11.5px;margin-top:9px;text-align:center;line-height:1.5;color:var(--subtle)"></p>
+    </div>
+  </div>
+</div>
 
-    <p class="hint" style="margin-top:20px">
-      ⚠️ Import akan <b>menimpa semua data saat ini</b> dengan isi file backup. Pastikan file benar sebelum lanjut.
-    </p>
+<!-- ============== MODAL: PILIH DATA SAAT PERTAMA MASUK ============== -->
+<div class="modal" id="gabungModal">
+  <div class="modal-bg"></div>
+  <div class="sheet">
+    <div class="grabber"></div>
+    <div class="sheet-head">
+      <h2>Dua sumber data</h2>
+    </div>
+    <div class="note warn" style="margin-bottom:14px"><span class="ic">🔀</span><span>
+      Akun ini sudah punya data di cloud, dan perangkat ini juga punya datanya sendiri.
+      Pilih mau diapakan — <b>tidak ada yang dihapus sebelum kamu memilih</b>.</span></div>
+    <div id="gabungRingkas" class="note" style="margin-bottom:4px"></div>
+    <div class="pilih-grid">
+      <button class="pilih-btn utama" data-gabung="gabung">
+        <span class="ic">🤝</span><span>
+          <span class="jd">Gabungkan keduanya</span>
+          <span class="ds" id="dsGabung"></span></span>
+      </button>
+      <button class="pilih-btn" data-gabung="cloud">
+        <span class="ic">☁️</span><span>
+          <span class="jd">Pakai data cloud</span>
+          <span class="ds" id="dsCloud"></span></span>
+      </button>
+      <button class="pilih-btn" data-gabung="lokal">
+        <span class="ic">📱</span><span>
+          <span class="jd">Pakai data perangkat ini</span>
+          <span class="ds" id="dsLokal"></span></span>
+      </button>
+    </div>
+    <div class="note" style="margin-top:13px"><span class="ic">🛟</span><span>
+      Apa pun pilihanmu, isi perangkat ini disimpan dulu sebagai cadangan darurat
+      dan bisa diunduh dari tombol di bawah kalau hasilnya tidak sesuai.</span></div>
+    <button class="mini-btn" data-aksi="unduh-darurat" style="width:100%;margin-top:10px">Download cadangan sebelum sinkron</button>
   </div>
 </div>
 <script>
@@ -1033,9 +1159,18 @@ function loadData() {
   });
   return d;
 }
+/* Penanda "sinkronisasi siap menerima kiriman". Sengaja `var`: saveData() bisa
+   terpanggil sebelum modul sinkronisasi di bawah dijalankan. Baru bernilai true
+   setelah data perangkat dan data cloud selesai dirukunkan — sebelum itu,
+   mengirim isi perangkat bisa menimpa data cloud yang belum dibaca. */
+var sinkronAktif = false;
+
 function saveData(d) {
   memStore = d;
   try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(e) {}
+  // Satu-satunya pintu keluar data. Dari sini perubahan ikut dikirim ke cloud.
+  // Tema dan kurs sengaja tidak ikut — lihat muatanDok().
+  tandaiKotor(d);
 }
 
 let data = loadData();
@@ -1700,7 +1835,17 @@ function setGreeting() {
 
 let dailyVals = [];
 
+/* Penjaga masuk-ulang: snapshot dari perangkat lain bisa tiba tepat saat render
+   sedang berjalan. Tanpa penjaga ini, innerHTML yang sedang ditulis bisa
+   dibongkar di tengah jalan dan melempar NotFoundError. */
+let sedangRender = false;
+let perluRender = false;
 function render() {
+  if (sedangRender) return;
+  sedangRender = true;
+  try { renderIsi(); } finally { sedangRender = false; }
+}
+function renderIsi() {
   applyTheme();
   const mk = monthKey();
   const st = monthStats(mk);
@@ -2235,13 +2380,18 @@ function renderWallet(st) {
 let heroFxAmount = 0, walletFxAmount = 0;
 
 function openSheet(id) { $(id).classList.add('open'); document.body.style.overflow='hidden'; }
-function closeSheet(id) { $(id).classList.remove('open'); document.body.style.overflow=''; }
+function closeSheet(id) {
+  $(id).classList.remove('open'); document.body.style.overflow='';
+  // Perubahan dari perangkat lain yang ditahan karena sheet sedang dipakai
+  if (perluRender) { perluRender = false; render(); }
+}
 document.addEventListener('click', ev => {
   const c = ev.target.closest('[data-close]');
   if (c) closeSheet(c.dataset.close);
 });
 document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape') document.querySelectorAll('.modal.open').forEach(m => closeSheet(m.id));
+  // gabungModal sengaja tidak bisa ditutup dengan Escape — harus dipilih dulu
+  if (ev.key === 'Escape') document.querySelectorAll('.modal.open').forEach(m => { if (m.id !== 'gabungModal') closeSheet(m.id); });
 });
 
 function bindSeg(id, attr, onPick) {
@@ -2636,7 +2786,13 @@ $('refreshRateBtn').onclick = async () => {
 };
 
 /* ---------- BACKUP & RESTORE ---------- */
-$('backupBtn').onclick = () => { $('importStatus').textContent=''; openSheet('backupModal'); };
+$('backupBtn').onclick = () => {
+  $('importStatus').textContent = '';
+  $('statusVersi').textContent = '';
+  openSheet('backupModal');
+  isiDarurat();
+  isiVersiCache();
+};
 $('exportBtn').onclick = () => {
   const payload = { app:'catatan-pengeluaran', version:26, exportedAt:new Date().toISOString(), data };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
@@ -2721,9 +2877,558 @@ $('chartBox').addEventListener('click', ev => {
 });
 window.addEventListener('resize', () => { if (dailyVals.some(v=>v>0)) drawChart(); });
 
+/* ===================================================================
+   SINKRONISASI ANTAR PERANGKAT (Firebase)
+
+   Data tetap tersimpan penuh di perangkat (localStorage) seperti sebelumnya.
+   Setelah masuk dengan Google, salinannya ikut disimpan di cloud dan setiap
+   perubahan di satu perangkat langsung muncul di perangkat lain.
+
+   Kunci di bawah BUKAN rahasia — memang dirancang untuk terbaca publik.
+   Yang menjaga data adalah login Google + security rules Firestore:
+     match /users/{uid}/{dokumen=**} {
+       allow read, write: if request.auth != null && request.auth.uid == uid;
+     }
+   =================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDYNhR13c77nDDycOzZPj4XAWTUxktbBpY",
+  authDomain: "kalkulator-hpp-d0bf8.firebaseapp.com",
+  projectId: "kalkulator-hpp-d0bf8",
+  storageBucket: "kalkulator-hpp-d0bf8.firebasestorage.app",
+  messagingSenderId: "748330750698",
+  appId: "1:748330750698:web:18b56b45aff2db6542fd93",
+  measurementId: "G-C3Q806S63C"
+};
+const SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
+const VERSI = '29';
+
+/* Dua dokumen saja. Transaksi dipisah karena isinya yang paling cepat
+   membesar; sisanya (budget, rekening, target, langganan) jarang berubah. */
+const DOK = ['transaksi', 'lain'];
+const KUNCI_DARURAT = 'w21-expense-sebelum-sinkron';
+
+const Sinkron = {
+  siapPakai: false,   // SDK termuat
+  masuk: false,
+  uid: null, email: '',
+  status: 'mati',     // mati | memuat | perlu-masuk | menyamakan | pilih | tersambung | offline | galat
+  pesan: '',
+  db: null, auth: null, akar: null,
+  lepas: [], sibuk: false, jeda: null,
+};
+
+const kotor = { transaksi:false, lain:false };
+const terakhirKirim = { transaksi:'', lain:'' };
+
+const ICON_CLOUD_OFF = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 18.5A3.5 3.5 0 0 1 6 11.6a5 5 0 0 1 8.5-2.9"/><path d="M18 18.5a3 3 0 0 0 .3-6"/><path d="M3 3l18 18"/></svg>';
+const ICON_CLOUD     = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 18.5h11a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 7.6 10a3.75 3.75 0 0 0-1.1 8.5Z"/></svg>';
+const ICON_CLOUD_OK  = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 17.5h11a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 7.6 9a3.75 3.75 0 0 0-1.1 8.5Z"/><path d="M9 14.2l2 2 4-4.2"/></svg>';
+
+/* ---------- Bentuk data per dokumen ---------- */
+function muatanDok(nama, d) {
+  const s = d || data;
+  if (nama === 'transaksi') {
+    return { expenses: s.expenses || [], incomes: s.incomes || [] };
+  }
+  return {
+    budgets: s.budgets || {}, banks: s.banks || [],
+    bankBalances: s.bankBalances || {}, goals: s.goals || [], subs: s.subs || [],
+  };
+}
+/* Sidik isi dokumen. Dipakai untuk tahu apa yang benar-benar berubah, supaya
+   ganti tema atau kurs tidak ikut memicu pengiriman. */
+function sidik(nama, d) { return JSON.stringify(muatanDok(nama, d)); }
+function catatTerkirim(d) { DOK.forEach(n => { terakhirKirim[n] = sidik(n, d); }); }
+function ref(nama) { return Sinkron.akar.collection('pengeluaran').doc(nama); }
+/* Firestore menolak undefined — buang lewat perjalanan JSON. */
+function bersihkan(o) { return JSON.parse(JSON.stringify(o)); }
+
+/* Dipanggil dari saveData() pada setiap perubahan data. */
+function tandaiKotor(d) {
+  if (!sinkronAktif) return;
+  let ada = false;
+  DOK.forEach(n => { if (sidik(n, d) !== terakhirKirim[n]) { kotor[n] = true; ada = true; } });
+  if (ada) jadwalDorong();
+}
+function jadwalDorong() {
+  clearTimeout(Sinkron.jeda);
+  Sinkron.jeda = setTimeout(dorongKeCloud, 900);
+}
+
+function muatSkrip(src) {
+  return new Promise((selesai, gagal) => {
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = selesai;
+    s.onerror = () => gagal(new Error('gagal memuat ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+/* ---------- Tampilan status ---------- */
+function aturStatus(status, pesan) {
+  Sinkron.status = status;
+  Sinkron.pesan = pesan || '';
+  const b = $('backupBtn');
+  if (b) {
+    b.innerHTML = status === 'mati' ? ICON_CLOUD_OFF
+                : status === 'tersambung' ? ICON_CLOUD_OK : ICON_CLOUD;
+    b.style.color = status === 'tersambung' ? 'var(--good)'
+                  : status === 'galat' ? 'var(--bad)'
+                  : (status === 'menyamakan' || status === 'memuat' || status === 'pilih') ? 'var(--warn)'
+                  : 'var(--sub)';
+    b.title = teksStatus();
+    b.setAttribute('aria-label', 'Data dan sinkronisasi — ' + teksStatus());
+  }
+  const p = $('panelAkun');
+  if (p) p.innerHTML = panelAkunHTML();
+}
+function teksStatus() {
+  switch (Sinkron.status) {
+    case 'mati':        return 'Sinkronisasi tidak tersedia';
+    case 'memuat':      return 'Menyiapkan sinkronisasi…';
+    case 'perlu-masuk': return 'Belum masuk — data hanya di perangkat ini';
+    case 'menyamakan':  return 'Menyamakan data…';
+    case 'pilih':       return 'Menunggu pilihan: data cloud atau perangkat ini';
+    case 'tersambung':  return 'Tersambung sebagai ' + Sinkron.email;
+    case 'offline':     return 'Offline — perubahan dikirim saat online lagi';
+    default:            return Sinkron.pesan || 'Sinkronisasi bermasalah';
+  }
+}
+
+function panelAkunHTML() {
+  if (Sinkron.status === 'memuat')
+    return `<div class="note"><span class="ic">⏳</span><span>Menyiapkan sinkronisasi…</span></div>`;
+  if (Sinkron.status === 'mati')
+    return `<div class="note"><span class="ic">☁️</span><span>
+      <b>Sinkronisasi tidak bisa dinyalakan di perangkat ini.</b>
+      Data tetap aman tersimpan di browser ini. Pakai cadangan berkas di bawah untuk pindah perangkat.</span></div>`;
+  if (Sinkron.status === 'galat')
+    return `<div class="note bad" style="margin-bottom:10px"><span class="ic">⚠️</span><span>
+        <b>Sinkronisasi gagal.</b> ${esc(Sinkron.pesan)}</span></div>
+      <button class="mini-btn" data-aksi="coba-lagi" style="width:100%">Coba sambungkan lagi</button>`;
+  if (!Sinkron.masuk)
+    return `<div class="note" style="margin-bottom:12px"><span class="ic">☁️</span><span>
+        Masuk dengan Google supaya catatan yang sama terbaca di HP maupun PC.
+        Data yang sekarang ada di perangkat ini tidak akan hilang.</span></div>
+      <button class="save-btn" data-aksi="masuk">Masuk dengan Google</button>`;
+
+  const kabar = Sinkron.status === 'offline'
+    ? `<div class="note warn"><span class="ic">📡</span><span>
+        Sedang offline. Perubahanmu tersimpan di perangkat dan dikirim otomatis saat online lagi.</span></div>`
+    : Sinkron.status === 'menyamakan'
+    ? `<div class="note warn"><span class="ic">⏳</span><span>Menyamakan data dengan cloud…</span></div>`
+    : Sinkron.status === 'pilih'
+    ? `<div class="note warn"><span class="ic">🔀</span><span>
+        Menunggu pilihan: data cloud atau data perangkat ini.</span></div>`
+    : `<div class="note ok"><span class="ic">✅</span><span>
+        Tersambung. Perubahan di perangkat lain muncul di sini secara otomatis.</span></div>`;
+
+  return `<div class="akun-baris">
+      <div class="kiri">
+        <div class="eyebrow">Masuk sebagai</div>
+        <div class="surel">${esc(Sinkron.email)}</div>
+      </div>
+      <button class="mini-btn" data-aksi="keluar">Keluar</button>
+    </div>${kabar}`;
+}
+
+/* ---------- Mulai ---------- */
+async function mulaiSinkron() {
+  aturStatus('memuat');
+  try {
+    await muatSkrip(SDK + 'firebase-app-compat.js');
+    await Promise.all([
+      muatSkrip(SDK + 'firebase-auth-compat.js'),
+      muatSkrip(SDK + 'firebase-firestore-compat.js'),
+    ]);
+    const fb = window.firebase;
+    if (!fb) throw new Error('SDK Firebase tidak termuat');
+    if (!fb.apps.length) fb.initializeApp(FIREBASE_CONFIG);
+    Sinkron.auth = fb.auth();
+    Sinkron.db = fb.firestore();
+    // Cache lokal Firestore: aplikasi tetap jalan saat sinyal hilang.
+    try { await Sinkron.db.enablePersistence({ synchronizeTabs:true }); } catch (e) {}
+    Sinkron.siapPakai = true;
+
+    Sinkron.auth.onAuthStateChanged(async akun => {
+      lepasLangganan();
+      sinkronAktif = false;
+      if (!akun) {
+        Sinkron.masuk = false; Sinkron.uid = null; Sinkron.email = '';
+        aturStatus('perlu-masuk');
+        return;
+      }
+      Sinkron.masuk = true; Sinkron.uid = akun.uid;
+      Sinkron.email = akun.email || akun.displayName || 'akun Google';
+      Sinkron.akar = Sinkron.db.collection('users').doc(akun.uid);
+      aturStatus('menyamakan');
+      try { await samakanAwal(); }
+      catch (e) { aturStatus('galat', pesanGalat(e)); }
+    });
+
+    window.addEventListener('online',  () => { if (Sinkron.masuk && Sinkron.status === 'offline') aturStatus('tersambung'); });
+    window.addEventListener('offline', () => { if (Sinkron.masuk) aturStatus('offline'); });
+  } catch (e) {
+    // Tanpa jaringan ke gstatic.com, SDK tidak termuat — aplikasi tetap jalan lokal.
+    aturStatus(navigator.onLine === false ? 'mati' : 'galat', pesanGalat(e));
+  }
+}
+function pesanGalat(e) {
+  const kode = (e && e.code) || '';
+  if (kode === 'permission-denied') return 'Security rules menolak akses. Pastikan rules Firestore sudah dipasang.';
+  if (kode === 'auth/popup-blocked') return 'Jendela login diblokir peramban. Izinkan popup untuk situs ini.';
+  if (kode === 'auth/unauthorized-domain') return 'Domain ini belum didaftarkan di Firebase → Authentication → Settings → Authorized domains.';
+  if (kode === 'auth/network-request-failed') return 'Tidak ada koneksi ke server Google. Coba lagi saat sinyal stabil.';
+  if (kode === 'failed-precondition') return 'Firestore belum dibuat di proyek Firebase ini.';
+  return (e && e.message) || 'Penyebab tidak diketahui.';
+}
+
+async function masukGoogle() {
+  if (!Sinkron.auth) return;
+  try {
+    const p = new window.firebase.auth.GoogleAuthProvider();
+    await Sinkron.auth.signInWithPopup(p);
+  } catch (e) {
+    if (e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request')) return;
+    aturStatus('galat', pesanGalat(e));
+  }
+}
+async function keluarAkun() {
+  if (!Sinkron.auth) return;
+  lepasLangganan();
+  sinkronAktif = false;
+  clearTimeout(Sinkron.jeda);
+  DOK.forEach(n => { kotor[n] = false; });
+  try { await Sinkron.auth.signOut(); } catch (e) {}
+}
+function lepasLangganan() { Sinkron.lepas.forEach(f => { try { f(); } catch (e) {} }); Sinkron.lepas = []; }
+
+/* ===================================================================
+   PERTEMUAN PERTAMA ANTARA DATA PERANGKAT DAN DATA CLOUD
+
+   Catatan pengeluaran bisa punya data nyata di DUA perangkat sekaligus,
+   jadi cloud tidak boleh menimpa perangkat tanpa ditanya dulu.
+   =================================================================== */
+function jumlahTx(m) { return (m.expenses || []).length + (m.incomes || []).length; }
+
+/* Rukun selesai: mulai mendengar perangkat lain dan buka keran pengiriman.
+   tandaiKotor() di akhir menangkap perubahan yang sempat dibuat saat menyamakan. */
+function aktifkanSinkron() {
+  pasangLangganan();
+  sinkronAktif = true;
+  aturStatus('tersambung');
+  tandaiKotor();
+}
+
+async function samakanAwal() {
+  const [snapTx, snapLain] = await Promise.all([ ref('transaksi').get(), ref('lain').get() ]);
+  const cloud = {
+    transaksi: snapTx.exists ? snapTx.data() : null,
+    lain: snapLain.exists ? snapLain.data() : null,
+  };
+  const nCloud = cloud.transaksi ? jumlahTx(cloud.transaksi) : 0;
+  const nLokal = jumlahTx(data);
+
+  if (!cloud.transaksi && !cloud.lain) { await dorongSemua(); aktifkanSinkron(); return; }
+  if (nCloud === 0 && nLokal > 0)      { await dorongSemua(); aktifkanSinkron(); return; }
+  if (nLokal === 0)                    { pakaiCloud(cloud);   aktifkanSinkron(); return; }
+
+  // Dua-duanya berisi → tanya dulu, jangan ada yang dihapus diam-diam.
+  simpanDarurat();
+  tanyaGabung(cloud, nCloud, nLokal);
+}
+
+/* Isi perangkat ini disimpan terpisah sebelum apa pun ditimpa. */
+function simpanDarurat() {
+  try {
+    localStorage.setItem(KUNCI_DARURAT, JSON.stringify({
+      app:'catatan-pengeluaran', alasan:'sebelum sinkron pertama',
+      disimpan:new Date().toISOString(), data,
+    }));
+  } catch (e) {}
+}
+
+function tanyaGabung(cloud, nCloud, nLokal) {
+  aturStatus('pilih');
+  const gab = gabungkan(cloud);
+  $('gabungRingkas').innerHTML = `<span class="ic">📊</span><span>
+    Cloud: <b>${nCloud} transaksi</b> · Perangkat ini: <b>${nLokal} transaksi</b></span>`;
+  $('dsGabung').textContent = `Semua catatan dari kedua tempat dipakai — hasilnya ${jumlahTx(gab.transaksi)} transaksi. Catatan yang sama (ID sama) tidak jadi dobel.`;
+  $('dsCloud').textContent  = `Pakai ${nCloud} transaksi dari cloud. Catatan di perangkat ini yang belum pernah terkirim akan hilang.`;
+  $('dsLokal').textContent  = `Pakai ${nLokal} transaksi dari perangkat ini dan kirim ke cloud. Isi cloud yang sekarang akan diganti.`;
+  openSheet('gabungModal');
+
+  Sinkron.pilihan = pilihan => {
+    closeSheet('gabungModal');
+    aturStatus('menyamakan');
+    (async () => {
+      try {
+        if (pilihan === 'cloud') { pakaiCloud(cloud); }
+        else if (pilihan === 'lokal') { await dorongSemua(); }
+        else { pakaiGabungan(gab); await dorongSemua(); }
+        aktifkanSinkron();
+      } catch (e) { aturStatus('galat', pesanGalat(e)); }
+    })();
+  };
+}
+
+/* Gabung berdasarkan ID: catatan yang ada di satu sisi saja ikut masuk,
+   catatan dengan ID sama diambil versi perangkat ini (yang sedang dipakai). */
+function gabungDaftar(jauh, lokal) {
+  const peta = new Map();
+  (Array.isArray(jauh) ? jauh : []).forEach(x => { if (x && x.id) peta.set(x.id, x); });
+  (Array.isArray(lokal) ? lokal : []).forEach(x => { if (x && x.id) peta.set(x.id, x); });
+  // Tanpa id (data sangat lama) tetap diikutkan apa adanya
+  const tanpaId = [].concat(
+    (Array.isArray(jauh) ? jauh : []).filter(x => x && !x.id),
+    (Array.isArray(lokal) ? lokal : []).filter(x => x && !x.id));
+  return [...peta.values()].concat(tanpaId);
+}
+/* Peta (budget, saldo per bulan): kunci yang hanya ada di cloud ikut masuk,
+   kunci yang ada di dua tempat memakai angka perangkat ini. */
+function gabungPeta(jauh, lokal) {
+  return Object.assign({}, (jauh && typeof jauh === 'object') ? jauh : {},
+                           (lokal && typeof lokal === 'object') ? lokal : {});
+}
+function gabungkan(cloud) {
+  const t = cloud.transaksi || {}, l = cloud.lain || {};
+  return {
+    transaksi: {
+      expenses: gabungDaftar(t.expenses, data.expenses),
+      incomes:  gabungDaftar(t.incomes,  data.incomes),
+    },
+    lain: {
+      budgets: gabungPeta(l.budgets, data.budgets),
+      banks: gabungDaftar(l.banks, data.banks),
+      bankBalances: gabungPeta(l.bankBalances, data.bankBalances),
+      goals: gabungDaftar(l.goals, data.goals),
+      subs: gabungDaftar(l.subs, data.subs),
+    },
+  };
+}
+
+function tempel(nama, isi) {
+  if (!isi) return;
+  if (nama === 'transaksi') {
+    data.expenses = Array.isArray(isi.expenses) ? isi.expenses : [];
+    data.incomes  = Array.isArray(isi.incomes)  ? isi.incomes  : [];
+  } else {
+    data.budgets      = (isi.budgets && typeof isi.budgets === 'object') ? isi.budgets : {};
+    data.banks        = Array.isArray(isi.banks) ? isi.banks : [];
+    data.bankBalances = (isi.bankBalances && typeof isi.bankBalances === 'object') ? isi.bankBalances : {};
+    data.goals        = Array.isArray(isi.goals) ? isi.goals : [];
+    data.subs         = Array.isArray(isi.subs)  ? isi.subs  : [];
+  }
+}
+function pakaiCloud(cloud) {
+  DOK.forEach(n => tempel(n, cloud[n]));
+  terapkanJauh();
+  catatTerkirim();
+}
+function pakaiGabungan(gab) {
+  DOK.forEach(n => tempel(n, gab[n]));
+  terapkanJauh();
+  // Hasil gabungan belum ada di cloud — tandai supaya dorongSemua() mengirimnya.
+  DOK.forEach(n => { terakhirKirim[n] = ''; kotor[n] = true; });
+}
+
+/* ---------- Mendengar perubahan dari perangkat lain ---------- */
+function pasangLangganan() {
+  DOK.forEach(n => {
+    try {
+      Sinkron.lepas.push(ref(n).onSnapshot(
+        snap => terimaDok(n, snap),
+        e => aturStatus('galat', pesanGalat(e))));
+    } catch (e) {}
+  });
+}
+function terimaDok(nama, snap) {
+  if (snap.metadata.hasPendingWrites) return;        // gema tulisan sendiri
+  if (kotor[nama] || Sinkron.sibuk) return;          // masih ada yang belum terkirim
+  if (!snap.exists) return;
+  tempel(nama, snap.data());
+  const acuan = sidik(nama);                         // isi cloud, sebelum migrasi
+  terapkanJauh();
+  terakhirKirim[nama] = acuan;
+  tandaiKotor();                                     // kalau migrasi mengubah isi, kirim balik
+}
+/* Simpan ke perangkat, lalu baca lewat loadData() supaya migrasi format lama
+   ikut berlaku pada data yang datang dari perangkat lain. */
+function terapkanJauh() {
+  memStore = data;
+  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
+  data = loadData();
+  // Jangan gambar ulang kalau sheet sedang dipakai — isian yang sedang diketik bisa kereset.
+  if (document.querySelector('.modal.open')) { perluRender = true; return; }
+  render();
+}
+
+/* ---------- Mengirim perubahan ke cloud ---------- */
+async function dorongSemua() {
+  const b = Sinkron.db.batch();
+  const isi = {};
+  DOK.forEach(n => { isi[n] = muatanDok(n); b.set(ref(n), bersihkan(isi[n])); });
+  // Dokumen akar dipakai bersama aplikasi HPP — tulis field sendiri saja, jangan timpa.
+    b.set(Sinkron.akar, { pengeluaranDiubah: Date.now() }, { merge:true });
+  await b.commit();
+  DOK.forEach(n => { terakhirKirim[n] = JSON.stringify(isi[n]); kotor[n] = false; });
+}
+
+async function dorongKeCloud() {
+  if (!Sinkron.masuk || !Sinkron.akar || Sinkron.sibuk) return;
+  const kerja = DOK.filter(n => kotor[n]);
+  if (!kerja.length) return;
+  Sinkron.sibuk = true;
+  kerja.forEach(n => { kotor[n] = false; });
+  const isi = {};
+  kerja.forEach(n => { isi[n] = muatanDok(n); });
+  try {
+    const b = Sinkron.db.batch();
+    kerja.forEach(n => b.set(ref(n), bersihkan(isi[n])));
+    // Dokumen akar dipakai bersama aplikasi HPP — tulis field sendiri saja, jangan timpa.
+    b.set(Sinkron.akar, { pengeluaranDiubah: Date.now() }, { merge:true });
+    await b.commit();
+    kerja.forEach(n => { terakhirKirim[n] = JSON.stringify(isi[n]); });
+    if (Sinkron.status !== 'offline') aturStatus('tersambung');
+  } catch (e) {
+    // Kembalikan ke daftar kotor supaya dicoba lagi.
+    kerja.forEach(n => { kotor[n] = true; });
+    aturStatus(navigator.onLine === false ? 'offline' : 'galat', pesanGalat(e));
+  } finally {
+    Sinkron.sibuk = false;
+    if (DOK.some(n => kotor[n])) jadwalDorong();
+  }
+}
+
+/* ===================================================================
+   VERSI
+   Service worker menyimpan berkas untuk dipakai offline. Kalau perangkat masih
+   memegang berkas lama, aplikasinya terlihat "tidak berubah" padahal server
+   sudah diperbarui. Bagian ini membuat keadaan itu kelihatan, bukan ditebak.
+   =================================================================== */
+function tanyaVersiSW() {
+  return new Promise(selesai => {
+    const sw = navigator.serviceWorker;
+    if (!sw || !sw.controller) return selesai(null);
+    let sudah = false;
+    const ch = new MessageChannel();
+    const jam = setTimeout(() => { if (!sudah) { sudah = true; selesai(null); } }, 1500);
+    ch.port1.onmessage = e => { if (sudah) return; sudah = true; clearTimeout(jam); selesai(e.data); };
+    try { sw.controller.postMessage('versi', [ch.port2]); }
+    catch (e) { clearTimeout(jam); selesai(null); }
+  });
+}
+const nomorCache = nama => { const m = /-v(\d+)$/.exec(String(nama || '')); return m ? m[1] : null; };
+
+async function tandaiVersi() {
+  const c = $('chipVersi');
+  if (!c) return;
+  c.textContent = 'v' + VERSI;
+  const n = nomorCache(await tanyaVersiSW());
+  const beda = !!(n && n !== VERSI);
+  c.classList.toggle('beda', beda);
+  c.title = beda
+    ? `Aplikasi v${VERSI}, berkas offline v${n} — muat ulang halaman untuk menyamakan`
+    : `Versi aplikasi v${VERSI}`;
+}
+
+async function isiVersiCache() {
+  const n = nomorCache(await tanyaVersiSW());
+  const el = $('versiCache');
+  if (el) el.textContent = n ? 'v' + n : 'tidak aktif';
+  const kabar = $('kabarVersi');
+  if (kabar) {
+    kabar.innerHTML = (n && n !== VERSI)
+      ? `<div class="note warn" style="margin-bottom:10px"><span class="ic">⚠️</span><span>
+          <b>Perangkat ini masih memegang berkas lama.</b> Tekan "Periksa pembaruan" di bawah,
+          lalu muat ulang halaman. Kalau masih sama, tekan Ctrl+Shift+R.</span></div>`
+      : '';
+  }
+}
+
+async function periksaPembaruan() {
+  const s = $('statusVersi');
+  const tulis = (t, warna) => { if (s) { s.textContent = t; s.style.color = warna; } };
+  if (!navigator.serviceWorker) { tulis('Peramban ini tidak memakai cache offline.', 'var(--subtle)'); return; }
+  tulis('Memeriksa…', 'var(--subtle)');
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.update();
+    await new Promise(r => setTimeout(r, 900));
+    await isiVersiCache();
+    const n = nomorCache(await tanyaVersiSW());
+    if (n && n !== VERSI) tulis('Pembaruan sedang diunduh. Muat ulang halaman sebentar lagi.', 'var(--warn)');
+    else tulis('Sudah versi terbaru.', 'var(--good)');
+  } catch (e) {
+    tulis('Gagal memeriksa. Muat ulang halaman dengan Ctrl+Shift+R.', 'var(--bad)');
+  }
+}
+
+/* Service worker baru mengambil alih: tandai supaya terlihat perlu muat ulang.
+   Sengaja tidak memuat ulang sendiri — bisa memotong isian yang sedang diketik. */
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => { tandaiVersi(); });
+}
+
+/* ---------- Aksi tombol di panel ---------- */
+/* Cadangan darurat tetap bisa diambil setelah pilihan dibuat, bukan hanya
+   saat sheet pilihan masih terbuka. */
+function bacaDarurat() {
+  try { return JSON.parse(localStorage.getItem(KUNCI_DARURAT) || 'null'); } catch (e) { return null; }
+}
+function isiDarurat() {
+  const el = $('slotDarurat');
+  if (!el) return;
+  const s = bacaDarurat();
+  if (!s || !s.data) { el.innerHTML = ''; return; }
+  const tgl = String(s.disimpan || '').slice(0, 10);
+  el.innerHTML = `<div class="note" style="margin-top:12px"><span class="ic">🛟</span><span>
+      Tersimpan juga <b>cadangan isi perangkat ini sebelum sinkron pertama</b>
+      (${jumlahTx(s.data)} transaksi${tgl ? ', ' + esc(tgl) : ''}).</span></div>
+    <button class="mini-btn" data-aksi="unduh-darurat" style="width:100%;margin-top:9px">Download cadangan sebelum sinkron</button>`;
+}
+
+function unduhJson(obj, nama) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nama;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.addEventListener('click', ev => {
+  const g = ev.target.closest('[data-gabung]');
+  if (g) { if (Sinkron.pilihan) Sinkron.pilihan(g.dataset.gabung); return; }
+  const a = ev.target.closest('[data-aksi]');
+  if (!a) return;
+  const aksi = a.dataset.aksi;
+  if (aksi === 'masuk') masukGoogle();
+  else if (aksi === 'keluar') keluarAkun();
+  else if (aksi === 'coba-lagi') mulaiSinkron();
+  else if (aksi === 'periksa-versi') periksaPembaruan();
+  else if (aksi === 'unduh-darurat') {
+    unduhJson(bacaDarurat() || { app:'catatan-pengeluaran', data },
+              `backup-pengeluaran-${todayStr()}.json`);
+  }
+});
+/* Perubahan dari perangkat lain yang ditahan karena jari masih di kolom isian */
+document.addEventListener('focusout', () => {
+  if (!perluRender) return;
+  setTimeout(() => {
+    if (!perluRender) return;
+    if (document.querySelector('.modal.open')) return;
+    perluRender = false; render();
+  }, 0);
+});
+
 /* ---------- MULAI ---------- */
 setGreeting();
 render();
+$('versiApp').textContent = VERSI;
+tandaiVersi();
+aturStatus('memuat');
+mulaiSinkron();
 fetchRates().then(() => render());
 </script>
 </body>
