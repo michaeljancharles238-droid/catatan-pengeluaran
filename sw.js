@@ -13,7 +13,7 @@
    "Perbarui kurs" selalu mengambil angka terbaru.
 
    Naikkan nomor versi di bawah setiap kali index.html berubah. */
-const CACHE = 'catatan-pengeluaran-v29';
+const CACHE = 'catatan-pengeluaran-v30';
 
 const ASSETS = [
   './',
